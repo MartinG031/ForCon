@@ -1,0 +1,8 @@
+.DS_Store
+.build/
+.build-delete-*/
+dist/
+*.xcuserstate
+
+# Local release artifacts live one level above Source and are uploaded through GitHub Releases.
+../Release/
