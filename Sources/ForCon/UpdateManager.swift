@@ -23,7 +23,7 @@ struct UpdateAvailability: Sendable {
 
     var message: String {
         if isUpdateAvailable {
-            "发现 ForCon \(latestVersion)，点击自动更新安装。"
+            "发现 ForCon \(latestVersion)，请在设置中安装更新。"
         } else {
             "当前已是最新版本 \(currentVersion)。"
         }

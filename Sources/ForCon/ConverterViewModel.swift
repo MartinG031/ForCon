@@ -62,6 +62,10 @@ final class ConverterViewModel {
         engine.supportedOutputs(for: category)
     }
 
+    var currentVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "开发版"
+    }
+
     func availableOutputExtensions(for category: FormatCategory) -> [String] {
         engine.supportedOutputs(for: category)
     }

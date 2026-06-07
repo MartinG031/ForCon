@@ -52,12 +52,6 @@ private struct ForConCommands: Commands {
             }
             .keyboardShortcut(.delete, modifiers: [.command])
 
-            Divider()
-
-            Button("自动更新") {
-                post(.forConCheckForUpdates)
-            }
-            .keyboardShortcut("u", modifiers: [.command])
         }
 
         CommandGroup(replacing: .help) {

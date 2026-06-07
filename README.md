@@ -2,7 +2,7 @@
 
 ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.20.dmg)
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.21.dmg)
 
 ## 主要功能
 
@@ -14,10 +14,11 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 - 支持常用文档格式转换，例如 PDF、TXT、RTF、HTML、DOCX、ODT、EPUB、Markdown 等。
 - 提供图片质量、图片尺寸、视频质量、移除音频、PDF 图片倍率等常用设置。
 - 侧边栏底部提供统一设置入口，可管理输出目录和各类转换参数。
+- 设置里显示当前版本，并集中管理更新检查与安装。
 - 自动控制图片、视频、文档转换并发，减少大批量任务时的卡顿和资源争用。
 - 批量转换时显示已处理数量、实时进度和预计剩余时间。
 - 记住上一次选择的类型、输出格式、输出目录和常用设置。
-- 每次启动会自动检查 GitHub Releases 更新；手动点击自动更新后下载、校验 SHA-256，并自动安装重启。
+- 每次启动会自动检查 GitHub Releases 更新；在设置中确认安装后下载、校验 SHA-256，并自动安装重启。
 
 ## 安装
 
@@ -34,9 +35,9 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 4. 点击侧边栏底部“设置”，按需调整输出目录和转换参数。
 6. 点击“开始转换”。
 
-## 自动更新
+## 更新
 
-点击侧边栏的“自动更新”后，ForCon 会：
+ForCon 启动时会自动检查更新。需要安装新版时，打开侧边栏底部“设置”，点击“检查并安装更新”。ForCon 会：
 
 - 从 GitHub Releases 读取更新清单。
 - 下载新版 DMG。
@@ -48,7 +49,7 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 
 - ForCon 在本机处理文件，不上传到云端或第三方服务器。
 - 输出文件只写入用户选择的输出目录。
-- 只有点击“自动更新”时才会访问 GitHub Releases。
+- 只有启动检查更新或在设置中安装更新时才会访问 GitHub Releases。
 - 下载的更新包会先做 SHA-256 校验。
 - 当前发行包为本地 ad-hoc 签名，尚未使用 Apple Developer ID 公证。
 
@@ -62,7 +63,7 @@ ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片
 
 ForCon is a native macOS format converter for batch image, video, and document conversion.
 
-[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.20.dmg)
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.21.dmg)
 
 ## Features
 
@@ -74,10 +75,11 @@ ForCon is a native macOS format converter for batch image, video, and document c
 - Convert common document formats such as PDF, TXT, RTF, HTML, DOCX, ODT, EPUB, and Markdown.
 - Common settings for image quality, image size, video quality, audio removal, and PDF image scale.
 - A unified Settings entry at the bottom of the sidebar manages the output folder and conversion options.
+- Settings shows the current version and centralizes update checking and installation.
 - Automatically limits image, video, and document conversion concurrency to reduce stalls and resource contention during large batches.
 - Shows processed item count, live progress, and estimated remaining time during batch conversion.
 - Remembers the last selected mode, output formats, output folder, and common settings.
-- Checks GitHub Releases for updates on every launch; after clicking Auto Update, downloads, verifies SHA-256, installs automatically, and restarts.
+- Checks GitHub Releases for updates on every launch; after confirming installation in Settings, downloads, verifies SHA-256, installs automatically, and restarts.
 
 ## Installation
 
@@ -94,9 +96,9 @@ ForCon is a native macOS format converter for batch image, video, and document c
 4. Open Settings from the bottom of the sidebar to adjust the output folder and conversion options.
 6. Click Start Conversion.
 
-## Auto Update
+## Updates
 
-When you click Auto Update, ForCon will:
+ForCon checks for updates on launch. To install a new version, open Settings from the bottom of the sidebar and click "Check And Install Update". ForCon will:
 
 - Read the update manifest from GitHub Releases.
 - Download the new DMG.
@@ -109,7 +111,7 @@ When you click Auto Update, ForCon will:
 - ForCon processes files locally on your Mac.
 - Files are not uploaded to cloud services or third-party servers.
 - Output files are written only to the folder you choose.
-- GitHub Releases is contacted only when you click Auto Update.
+- GitHub Releases is contacted only when ForCon checks for updates on launch or installs an update from Settings.
 - Downloaded update packages are verified with SHA-256 before installation.
 - Current release builds are locally ad-hoc signed and are not notarized with an Apple Developer ID.
 

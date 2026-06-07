@@ -89,21 +89,6 @@ struct ContentView: View {
                     .controlSize(.large)
                     .disabled(!viewModel.canConvert)
 
-                    Button {
-                        Task { await viewModel.checkForUpdates() }
-                    } label: {
-                        Label(viewModel.isCheckingForUpdate ? "检查中..." : "自动更新", systemImage: "arrow.down.circle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .controlSize(.large)
-                    .disabled(viewModel.isCheckingForUpdate)
-
-                    if let updateMessage = viewModel.updateMessage {
-                        Text(updateMessage)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
-                    }
                 }
                 .padding(20)
             }
@@ -347,7 +332,7 @@ private struct StartupPermissionView: View {
                 permissionRow(
                     icon: "arrow.down.circle",
                     title: "在线更新",
-                    detail: "仅点击自动更新时访问 GitHub Releases"
+                    detail: "仅检查或安装更新时访问 GitHub Releases"
                 )
             }
 
@@ -406,6 +391,8 @@ private struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    appSettings
+                    Divider()
                     outputDirectorySettings
                     Divider()
                     imageSettings
@@ -418,6 +405,33 @@ private struct SettingsView: View {
             }
         }
         .frame(width: 520, height: 620)
+    }
+
+    private var appSettings: some View {
+        SettingsSection(title: "应用", icon: "app.badge") {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("当前版本")
+                    Spacer()
+                    Text(viewModel.currentVersion)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let updateMessage = viewModel.updateMessage {
+                    Text(updateMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+
+                Button {
+                    Task { await viewModel.checkForUpdates() }
+                } label: {
+                    Label(viewModel.isCheckingForUpdate ? "检查中..." : "检查并安装更新", systemImage: "arrow.down.circle")
+                }
+                .disabled(viewModel.isCheckingForUpdate)
+            }
+        }
     }
 
     private var outputDirectorySettings: some View {
@@ -546,7 +560,7 @@ struct AboutForConView: View {
                     .font(.headline)
                 Label("文件仅在本机处理，不上传到云端或第三方服务器", systemImage: "lock.shield")
                 Label("输出文件只写入用户选择的输出目录", systemImage: "folder")
-                Label("仅点击自动更新时检查 GitHub Releases 更新源", systemImage: "network")
+                Label("仅检查或安装更新时访问 GitHub Releases", systemImage: "network")
                 Label("下载的安装包会先进行 SHA-256 校验", systemImage: "checkmark.seal")
                 Label("转换能力来自 macOS 系统框架和本机安装的转换工具", systemImage: "wrench.and.screwdriver")
             }
