@@ -78,13 +78,22 @@ final class ConverterViewModel {
     }
 
     func pickOutputDirectory() {
+        _ = requestOutputDirectoryAccess()
+    }
+
+    @discardableResult
+    func requestOutputDirectoryAccess() -> Bool {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
+        panel.message = "请选择 ForCon 保存转换结果的位置。"
+        panel.prompt = "授权"
         if panel.runModal() == .OK, let url = panel.url {
             outputDirectory = url
+            return true
         }
+        return false
     }
 
     func handleDrop(_ providers: [NSItemProvider]) -> Bool {

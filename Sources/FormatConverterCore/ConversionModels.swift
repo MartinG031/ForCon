@@ -10,7 +10,7 @@ public enum FormatCategory: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .automatic: "自动识别"
+        case .automatic: "自动"
         case .image: "图片"
         case .video: "视频"
         case .document: "文档"
@@ -164,7 +164,7 @@ public enum ConverterError: Error, LocalizedError, Sendable {
         case .conversionFailed(let message):
             "转换失败：\(message)"
         case .categoryMismatch(let url, let expected, let actual):
-            "\(url.lastPathComponent) 是\(actual.displayName)文件，当前选择的是\(expected.displayName)。请切换类型或使用自动识别。"
+            "\(url.lastPathComponent) 是\(actual.displayName)文件，当前选择的是\(expected.displayName)。请切换类型或使用自动。"
         case .videoExportUnavailable:
             "当前视频无法使用系统导出器转换"
         case .videoExportFailed(let message):

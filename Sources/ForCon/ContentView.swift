@@ -4,12 +4,33 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = ConverterViewModel()
+    @State private var isAboutPresented = false
+    @AppStorage("startup.permissions.completed") private var startupPermissionsCompleted = false
 
     var body: some View {
         NavigationSplitView {
             sidebar
         } detail: {
             mainPanel
+        }
+        .toolbar {
+            ToolbarItem {
+                Button("关于ForCon") {
+                    isAboutPresented = true
+                }
+            }
+        }
+        .sheet(isPresented: $isAboutPresented) {
+            AboutForConView()
+        }
+        .sheet(isPresented: Binding(
+            get: { !startupPermissionsCompleted },
+            set: { if !$0 { startupPermissionsCompleted = true } }
+        )) {
+            StartupPermissionView(viewModel: viewModel) {
+                startupPermissionsCompleted = true
+            }
+            .interactiveDismissDisabled(true)
         }
     }
 
@@ -78,27 +99,11 @@ struct ContentView: View {
                         .lineLimit(3)
                 }
 
-                trustStatement
                 outputPathView
             }
             .padding(20)
         }
         .frame(minWidth: 280)
-    }
-
-    private var trustStatement: some View {
-        DisclosureGroup("可信声明") {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("文件仅在本机处理", systemImage: "lock.shield")
-                Label("不会上传到云端或服务器", systemImage: "icloud.slash")
-                Label("输出只写入所选目录", systemImage: "folder")
-                Label("仅点击自动更新时检查更新源", systemImage: "network")
-                Label("转换组件来自 macOS 与本机工具", systemImage: "checkmark.seal")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.top, 8)
-        }
     }
 
     private var outputFormatSection: some View {
@@ -386,5 +391,113 @@ struct ContentView: View {
         case .document: "doc.text"
         default: "doc"
         }
+    }
+}
+
+private struct StartupPermissionView: View {
+    @Bindable var viewModel: ConverterViewModel
+    let onComplete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 8) {
+                Image(systemName: "checkmark.shield")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.blue)
+                Text("开始使用 ForCon")
+                    .font(.title2.weight(.semibold))
+                Text("首次启动需要确认文件读写位置。ForCon 只会处理你选择或拖入的文件，并把结果写入授权的输出目录。")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                permissionRow(
+                    icon: "folder.badge.gearshape",
+                    title: "输出目录权限",
+                    detail: viewModel.outputDirectory.path
+                )
+                permissionRow(
+                    icon: "doc.badge.plus",
+                    title: "输入文件访问",
+                    detail: "通过添加文件或拖入文件时逐次授权"
+                )
+                permissionRow(
+                    icon: "arrow.down.circle",
+                    title: "在线更新",
+                    detail: "仅点击自动更新时访问 GitHub Releases"
+                )
+            }
+
+            HStack {
+                Button("选择输出目录并继续") {
+                    if viewModel.requestOutputDirectoryAccess() {
+                        onComplete()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("使用下载文件夹") {
+                    onComplete()
+                }
+            }
+        }
+        .padding(28)
+        .frame(width: 520)
+    }
+
+    private func permissionRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 22)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+    }
+}
+
+private struct AboutForConView: View {
+    private var version: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "开发版"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 14) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("ForCon")
+                        .font(.title2.weight(.semibold))
+                    Text("版本 \(version)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("可信声明")
+                    .font(.headline)
+                Label("文件仅在本机处理，不上传到云端或第三方服务器", systemImage: "lock.shield")
+                Label("输出文件只写入用户选择的输出目录", systemImage: "folder")
+                Label("仅点击自动更新时检查 GitHub Releases 更新源", systemImage: "network")
+                Label("下载的安装包会先进行 SHA-256 校验", systemImage: "checkmark.seal")
+                Label("转换能力来自 macOS 系统框架和本机安装的转换工具", systemImage: "wrench.and.screwdriver")
+            }
+            .font(.callout)
+
+            Text("本发行包为本地 ad-hoc 签名；没有 Apple Developer ID 公证。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(28)
+        .frame(width: 520)
     }
 }
