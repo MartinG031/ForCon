@@ -11,7 +11,8 @@ ForCon 是一个原生 macOS 格式转换工具，使用 SwiftUI 构建界面，
 - 支持批量文件、拖拽、输出目录选择、转换结果列表。
 - 常用设置按类型分组：图片设置、视频设置、文档设置；侧边栏支持滚动，适配较小窗口。
 - 首次启动会引导确认输出目录权限。
-- 顶栏提供“关于ForCon”，集中展示可信声明和版本信息。
+- App 菜单提供“关于 ForCon”，集中展示可信声明和版本信息。
+- 文件菜单提供添加文件、选择输出目录、开始转换、清空和自动更新等常用动作。
 - 自动更新按钮会读取 GitHub Releases 更新清单，下载新版 DMG、校验 SHA-256，并自动安装重启。
 - 会记住上一次选择的类型、各类型输出格式、输出目录和常用设置。
 - 手动选择图片/视频/文档类型时，会拦截不匹配的文件，避免交给错误后端转换。
@@ -70,7 +71,7 @@ https://github.com/MartinG031/ForCon/releases/latest/download/latest.json
 
 ```bash
 FORCON_UPDATE_MANIFEST_URL='https://example.com/forcon/latest.json' \
-FORCON_UPDATE_DOWNLOAD_URL='https://example.com/forcon/ForCon-0.1.14.dmg' \
+FORCON_UPDATE_DOWNLOAD_URL='https://example.com/forcon/ForCon-0.1.15.dmg' \
 scripts/package-release.sh
 ```
 
@@ -78,10 +79,10 @@ scripts/package-release.sh
 
 ```json
 {
-  "version": "0.1.14",
-  "downloadURL": "https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.14.dmg",
+  "version": "0.1.15",
+  "downloadURL": "https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg",
   "sha256": "DMG 的 SHA-256",
-  "notes": "ForCon 0.1.14"
+  "notes": "ForCon 0.1.15"
 }
 ```
 

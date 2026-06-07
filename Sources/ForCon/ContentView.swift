@@ -4,7 +4,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = ConverterViewModel()
-    @State private var isAboutPresented = false
     @AppStorage("startup.permissions.completed") private var startupPermissionsCompleted = false
 
     var body: some View {
@@ -13,15 +12,20 @@ struct ContentView: View {
         } detail: {
             mainPanel
         }
-        .toolbar {
-            ToolbarItem {
-                Button("关于ForCon") {
-                    isAboutPresented = true
-                }
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .forConAddFiles)) { _ in
+            viewModel.pickFiles()
         }
-        .sheet(isPresented: $isAboutPresented) {
-            AboutForConView()
+        .onReceive(NotificationCenter.default.publisher(for: .forConChooseOutputDirectory)) { _ in
+            viewModel.pickOutputDirectory()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .forConStartConversion)) { _ in
+            Task { await viewModel.convert() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .forConClearFiles)) { _ in
+            viewModel.clear()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .forConCheckForUpdates)) { _ in
+            Task { await viewModel.checkForUpdates() }
         }
         .sheet(isPresented: Binding(
             get: { !startupPermissionsCompleted },
@@ -463,7 +467,7 @@ private struct StartupPermissionView: View {
     }
 }
 
-private struct AboutForConView: View {
+struct AboutForConView: View {
     private var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "开发版"
     }
