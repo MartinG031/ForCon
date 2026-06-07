@@ -239,25 +239,36 @@ final class UpdateManager: Sendable {
         target="$3"
         mount="$4"
         dmg="$5"
+        log="$HOME/Library/Logs/ForConUpdater.log"
+
+        mkdir -p "$(dirname "$log")"
+        exec >> "$log" 2>&1
+        echo "[$(/bin/date '+%Y-%m-%d %H:%M:%S')] installing update"
+        echo "pid=$pid"
+        echo "staging=$staging"
+        echo "target=$target"
 
         while kill -0 "$pid" 2>/dev/null; do
             sleep 0.2
         done
 
+        echo "old app exited"
         rm -rf "$target"
         mv "$staging" "$target"
-        xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
-        open "$target"
+        /usr/bin/xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
         hdiutil detach "$mount" -quiet 2>/dev/null || true
         rm -f "$dmg" 2>/dev/null || true
+        /usr/bin/open -n "$target"
+        echo "reopened $target"
         rm -f "$0" 2>/dev/null || true
         """
         try script.write(to: scriptURL, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/nohup")
         process.arguments = [
+            "/bin/zsh",
             scriptURL.path,
             "\(currentPID)",
             stagingApp.path,
@@ -265,6 +276,9 @@ final class UpdateManager: Sendable {
             mountPoint.path,
             diskImageURL.path
         ]
+        let nullDevice = FileHandle(forWritingAtPath: "/dev/null")
+        process.standardOutput = nullDevice
+        process.standardError = nullDevice
         try process.run()
     }
 
