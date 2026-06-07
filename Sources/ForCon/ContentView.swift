@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var viewModel = ConverterViewModel()
     @State private var didCheckForUpdatesOnLaunch = false
+    @State private var isSettingsPresented = false
     @AppStorage("startup.permissions.completed") private var startupPermissionsCompleted = false
 
     var body: some View {
@@ -42,76 +43,82 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled(true)
         }
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView(viewModel: viewModel)
+        }
     }
 
     private var sidebar: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("格式转换")
-                        .font(.title2.weight(.semibold))
-                    Text("图片、视频、文档批量转换")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("格式转换")
+                            .font(.title2.weight(.semibold))
+                        Text("图片、视频、文档批量转换")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
 
-                Picker("类型", selection: $viewModel.category) {
-                    ForEach(FormatCategory.allCases) { category in
-                        Text(category.displayName).tag(category)
+                    Picker("类型", selection: $viewModel.category) {
+                        ForEach(FormatCategory.allCases) { category in
+                            Text(category.displayName).tag(category)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    outputFormatSection
+
+                    Divider()
+
+                    Button {
+                        viewModel.pickFiles()
+                    } label: {
+                        Label("添加文件", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+
+                    Button {
+                        Task { await viewModel.convert() }
+                    } label: {
+                        Label("开始转换", systemImage: "arrow.triangle.2.circlepath")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(!viewModel.canConvert)
+
+                    Button {
+                        Task { await viewModel.checkForUpdates() }
+                    } label: {
+                        Label(viewModel.isCheckingForUpdate ? "检查中..." : "自动更新", systemImage: "arrow.down.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .disabled(viewModel.isCheckingForUpdate)
+
+                    if let updateMessage = viewModel.updateMessage {
+                        Text(updateMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
                     }
                 }
-                .pickerStyle(.segmented)
-
-                outputFormatSection
-                settingsPanel
-
-                Divider()
-
-                Button {
-                    viewModel.pickFiles()
-                } label: {
-                    Label("添加文件", systemImage: "plus")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large)
-
-                Button {
-                    viewModel.pickOutputDirectory()
-                } label: {
-                    Label("选择输出目录", systemImage: "folder")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large)
-
-                Button {
-                    Task { await viewModel.convert() }
-                } label: {
-                    Label("开始转换", systemImage: "arrow.triangle.2.circlepath")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(!viewModel.canConvert)
-
-                Button {
-                    Task { await viewModel.checkForUpdates() }
-                } label: {
-                    Label(viewModel.isCheckingForUpdate ? "检查中..." : "自动更新", systemImage: "arrow.down.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large)
-                .disabled(viewModel.isCheckingForUpdate)
-
-                if let updateMessage = viewModel.updateMessage {
-                    Text(updateMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-
-                outputPathView
+                .padding(20)
             }
-            .padding(20)
+
+            Divider()
+
+            Button {
+                isSettingsPresented = true
+            } label: {
+                Label("设置", systemImage: "gearshape")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.large)
+            .padding(16)
         }
         .frame(minWidth: 280)
     }
@@ -154,111 +161,6 @@ struct ContentView: View {
             .pickerStyle(.menu)
             .labelsHidden()
             .frame(width: 96)
-        }
-    }
-
-    private var settingsPanel: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            switch viewModel.category {
-            case .image:
-                imageSettings
-            case .video:
-                videoSettings
-            case .document:
-                documentSettings
-            case .automatic:
-                DisclosureGroup("常用设置") {
-                    VStack(alignment: .leading, spacing: 14) {
-                        imageQualityControl
-                        videoQualityControl
-                        documentScaleControl
-                    }
-                    .padding(.top, 8)
-                }
-            }
-        }
-    }
-
-    private var imageSettings: some View {
-        DisclosureGroup("图片设置") {
-            VStack(alignment: .leading, spacing: 14) {
-                imageQualityControl
-                Toggle("限制图片尺寸", isOn: $viewModel.resizeImages)
-                HStack {
-                    Text("最大边长")
-                    Spacer()
-                    Text("\(Int(viewModel.imageMaxDimension)) px")
-                        .foregroundStyle(.secondary)
-                }
-                Slider(value: $viewModel.imageMaxDimension, in: 256...8192, step: 256)
-                    .disabled(!viewModel.resizeImages)
-                Toggle("移除图片元数据", isOn: $viewModel.stripImageMetadata)
-            }
-            .padding(.top, 8)
-        }
-    }
-
-    private var videoSettings: some View {
-        DisclosureGroup("视频设置") {
-            VStack(alignment: .leading, spacing: 14) {
-                videoQualityControl
-                Toggle("移除音频", isOn: $viewModel.removeAudio)
-            }
-            .padding(.top, 8)
-        }
-    }
-
-    private var documentSettings: some View {
-        DisclosureGroup("文档设置") {
-            VStack(alignment: .leading, spacing: 14) {
-                documentScaleControl
-            }
-            .padding(.top, 8)
-        }
-    }
-
-    private var imageQualityControl: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("图片质量")
-                Spacer()
-                Text("\(Int(viewModel.imageQuality * 100))%")
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: $viewModel.imageQuality, in: 0.2...1.0)
-        }
-    }
-
-    private var videoQualityControl: some View {
-        Picker("视频质量", selection: $viewModel.videoQuality) {
-            ForEach(VideoQuality.allCases) { quality in
-                Text(quality.displayName).tag(quality)
-            }
-        }
-        .pickerStyle(.menu)
-    }
-
-    private var documentScaleControl: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("PDF 图片倍率")
-                Spacer()
-                Text(String(format: "%.1fx", viewModel.documentImageScale))
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: $viewModel.documentImageScale, in: 1.0...4.0, step: 0.5)
-        }
-    }
-
-    private var outputPathView: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("输出目录")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(viewModel.outputDirectory.path)
-                .font(.caption)
-                .lineLimit(3)
-                .textSelection(.enabled)
         }
     }
 
@@ -480,6 +382,143 @@ private struct StartupPermissionView: View {
                     .lineLimit(2)
             }
         }
+    }
+}
+
+private struct SettingsView: View {
+    @Bindable var viewModel: ConverterViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("设置")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button("完成") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(20)
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    outputDirectorySettings
+                    Divider()
+                    imageSettings
+                    Divider()
+                    videoSettings
+                    Divider()
+                    documentSettings
+                }
+                .padding(20)
+            }
+        }
+        .frame(width: 520, height: 620)
+    }
+
+    private var outputDirectorySettings: some View {
+        SettingsSection(title: "输出目录", icon: "folder") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(viewModel.outputDirectory.path)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .textSelection(.enabled)
+
+                Button {
+                    viewModel.pickOutputDirectory()
+                } label: {
+                    Label("选择输出目录", systemImage: "folder")
+                }
+            }
+        }
+    }
+
+    private var imageSettings: some View {
+        SettingsSection(title: "图片设置", icon: "photo") {
+            VStack(alignment: .leading, spacing: 14) {
+                imageQualityControl
+                Toggle("限制图片尺寸", isOn: $viewModel.resizeImages)
+                HStack {
+                    Text("最大边长")
+                    Spacer()
+                    Text("\(Int(viewModel.imageMaxDimension)) px")
+                        .foregroundStyle(.secondary)
+                }
+                Slider(value: $viewModel.imageMaxDimension, in: 256...8192, step: 256)
+                    .disabled(!viewModel.resizeImages)
+                Toggle("移除图片元数据", isOn: $viewModel.stripImageMetadata)
+            }
+        }
+    }
+
+    private var videoSettings: some View {
+        SettingsSection(title: "视频设置", icon: "film") {
+            VStack(alignment: .leading, spacing: 14) {
+                Picker("视频质量", selection: $viewModel.videoQuality) {
+                    ForEach(VideoQuality.allCases) { quality in
+                        Text(quality.displayName).tag(quality)
+                    }
+                }
+                .pickerStyle(.menu)
+                Toggle("移除音频", isOn: $viewModel.removeAudio)
+            }
+        }
+    }
+
+    private var documentSettings: some View {
+        SettingsSection(title: "文档设置", icon: "doc.text") {
+            documentScaleControl
+        }
+    }
+
+    private var imageQualityControl: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("图片质量")
+                Spacer()
+                Text("\(Int(viewModel.imageQuality * 100))%")
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: $viewModel.imageQuality, in: 0.2...1.0)
+        }
+    }
+
+    private var documentScaleControl: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("PDF 图片倍率")
+                Spacer()
+                Text(String(format: "%.1fx", viewModel.documentImageScale))
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: $viewModel.documentImageScale, in: 1.0...4.0, step: 0.5)
+        }
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let content: Content
+
+    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.icon = icon
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: icon)
+                .font(.headline)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

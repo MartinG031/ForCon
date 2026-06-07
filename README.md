@@ -2,7 +2,7 @@
 
 ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.19.dmg)
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.20.dmg)
 
 ## 主要功能
 
@@ -13,6 +13,7 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 - 支持常用视频格式转换，例如 MP4、MOV、M4V、MKV、AVI、WEBM、3GP 等。
 - 支持常用文档格式转换，例如 PDF、TXT、RTF、HTML、DOCX、ODT、EPUB、Markdown 等。
 - 提供图片质量、图片尺寸、视频质量、移除音频、PDF 图片倍率等常用设置。
+- 侧边栏底部提供统一设置入口，可管理输出目录和各类转换参数。
 - 自动控制图片、视频、文档转换并发，减少大批量任务时的卡顿和资源争用。
 - 批量转换时显示已处理数量、实时进度和预计剩余时间。
 - 记住上一次选择的类型、输出格式、输出目录和常用设置。
@@ -30,8 +31,7 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 1. 点击“添加文件”，或直接把文件拖入窗口。
 2. 选择“自动”“图片”“视频”或“文档”。
 3. 选择输出格式。
-4. 按需展开“常用设置”。
-5. 选择输出目录。
+4. 点击侧边栏底部“设置”，按需调整输出目录和转换参数。
 6. 点击“开始转换”。
 
 ## 自动更新
@@ -62,7 +62,7 @@ ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片
 
 ForCon is a native macOS format converter for batch image, video, and document conversion.
 
-[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.19.dmg)
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.20.dmg)
 
 ## Features
 
@@ -73,6 +73,7 @@ ForCon is a native macOS format converter for batch image, video, and document c
 - Convert common video formats such as MP4, MOV, M4V, MKV, AVI, WEBM, and 3GP.
 - Convert common document formats such as PDF, TXT, RTF, HTML, DOCX, ODT, EPUB, and Markdown.
 - Common settings for image quality, image size, video quality, audio removal, and PDF image scale.
+- A unified Settings entry at the bottom of the sidebar manages the output folder and conversion options.
 - Automatically limits image, video, and document conversion concurrency to reduce stalls and resource contention during large batches.
 - Shows processed item count, live progress, and estimated remaining time during batch conversion.
 - Remembers the last selected mode, output formats, output folder, and common settings.
@@ -90,8 +91,7 @@ ForCon is a native macOS format converter for batch image, video, and document c
 1. Click "Add Files", or drag files into the window.
 2. Choose Auto, Image, Video, or Document mode.
 3. Choose the output format.
-4. Adjust Common Settings if needed.
-5. Choose an output folder.
+4. Open Settings from the bottom of the sidebar to adjust the output folder and conversion options.
 6. Click Start Conversion.
 
 ## Auto Update
