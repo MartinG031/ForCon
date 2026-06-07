@@ -1,219 +1,114 @@
 # ForCon
 
-ForCon 是一个原生 macOS 格式转换工具，使用 SwiftUI 构建界面，将转换能力放在独立的 `FormatConverterCore` 模块中，便于测试和后续扩展。
+ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-## 当前能力
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg)
 
-- 图片：`png`、`jpg/jpeg`、`tiff`、`gif`、`bmp`、`heic` 之间转换。
-- 视频：通过 AVFoundation 导出 `mov`、`mp4`、`m4v`。
-- 文档：文本类文件转换为 `pdf`、`txt`、`rtf`、`html`；PDF 可导出文本或按页渲染为 `png/jpg`。
-- 扩展后端：ImageMagick、FFmpeg、Pandoc、LibreOffice。
-- 支持批量文件、拖拽、输出目录选择、转换结果列表。
-- 常用设置按类型分组：图片设置、视频设置、文档设置；侧边栏支持滚动，适配较小窗口。
-- 首次启动会引导确认输出目录权限。
-- App 菜单提供“关于 ForCon”，集中展示可信声明和版本信息。
-- 文件菜单提供添加文件、选择输出目录、开始转换、清空和自动更新等常用动作。
-- 自动更新按钮会读取 GitHub Releases 更新清单，下载新版 DMG、校验 SHA-256，并自动安装重启。
-- 会记住上一次选择的类型、各类型输出格式、输出目录和常用设置。
-- 手动选择图片/视频/文档类型时，会拦截不匹配的文件，避免交给错误后端转换。
-- 自动模式会按文件实际类型分别使用图片、视频、文档的输出格式，支持混合批量转换。
-- 已加入常见图片、视频、文档输入和输出格式清单；完整列表见 `COMPATIBILITY.md`。
+## 主要功能
 
-## 可信声明
+- 批量添加文件，支持拖拽。
+- 自动识别图片、视频、文档类型。
+- 自动模式下可为图片、视频、文档分别选择输出格式。
+- 支持常用图片格式转换，例如 PNG、JPG、JPEG、TIFF、GIF、BMP、HEIC、WEBP、AVIF、ICO 等。
+- 支持常用视频格式转换，例如 MP4、MOV、M4V、MKV、AVI、WEBM、3GP 等。
+- 支持常用文档格式转换，例如 PDF、TXT、RTF、HTML、DOCX、ODT、EPUB、Markdown 等。
+- 提供图片质量、图片尺寸、视频质量、移除音频、PDF 图片倍率等常用设置。
+- 记住上一次选择的类型、输出格式、输出目录和常用设置。
+- 支持 GitHub Releases 在线更新，下载后校验 SHA-256，并自动安装重启。
+
+## 安装
+
+1. 下载最新版 DMG。
+2. 打开 DMG。
+3. 将 `ForCon.app` 拖入 `Applications`。
+4. 首次打开时，如果 macOS 提示安全确认，请右键 `ForCon.app`，选择“打开”。
+
+## 使用方式
+
+1. 点击“添加文件”，或直接把文件拖入窗口。
+2. 选择“自动”“图片”“视频”或“文档”。
+3. 选择输出格式。
+4. 按需展开“常用设置”。
+5. 选择输出目录。
+6. 点击“开始转换”。
+
+## 自动更新
+
+点击侧边栏的“自动更新”后，ForCon 会：
+
+- 从 GitHub Releases 读取更新清单。
+- 下载新版 DMG。
+- 校验 SHA-256。
+- 自动替换 `/Applications/ForCon.app`。
+- 自动重新打开新版 ForCon。
+
+## 隐私与可信说明
 
 - ForCon 在本机处理文件，不上传到云端或第三方服务器。
 - 输出文件只写入用户选择的输出目录。
-- 只有点击自动更新时才会读取更新源；下载的安装包会先做 SHA-256 校验。
-- 转换能力来自 macOS 系统框架和本机安装的 ImageMagick、FFmpeg、Pandoc、LibreOffice。
-- 发行包为本地 ad-hoc 签名；没有 Apple Developer ID 公证。
+- 只有点击“自动更新”时才会访问 GitHub Releases。
+- 下载的更新包会先做 SHA-256 校验。
+- 当前发行包为本地 ad-hoc 签名，尚未使用 Apple Developer ID 公证。
 
-## 开发运行
+## 转换能力说明
 
-```bash
-cd macos-format-converter
-swift build
-swift test
-swift run ForCon
-```
-
-`swift run` 会启动调试版 macOS 窗口。生成可双击运行的 `.app`：
-
-```bash
-scripts/package-app.sh
-open dist/ForCon.app
-```
-
-生成正式发行包：
-
-```bash
-scripts/package-release.sh
-```
-
-生成指向 GitHub Releases 的发行包：
-
-```bash
-FORCON_GITHUB_REPOSITORY='MartinG031/ForCon' scripts/package-release.sh
-```
-
-直接发布到 GitHub Releases：
-
-```bash
-FORCON_GITHUB_REPOSITORY='MartinG031/ForCon' scripts/package-github-release.sh
-```
-
-GitHub 仓库需要是公开仓库，否则 App 无法免登录读取 `latest.json` 和下载 DMG。脚本会上传 `ForCon-版本号.dmg`、`ForCon-版本号.zip` 和 `latest.json` 到 `v版本号` Release。App 内更新源会指向：
-
-```text
-https://github.com/MartinG031/ForCon/releases/latest/download/latest.json
-```
-
-也可以手动指定任意线上更新源：
-
-```bash
-FORCON_UPDATE_MANIFEST_URL='https://example.com/forcon/latest.json' \
-FORCON_UPDATE_DOWNLOAD_URL='https://example.com/forcon/ForCon-0.1.15.dmg' \
-scripts/package-release.sh
-```
-
-更新清单格式：
-
-```json
-{
-  "version": "0.1.15",
-  "downloadURL": "https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg",
-  "sha256": "DMG 的 SHA-256",
-  "notes": "ForCon 0.1.15"
-}
-```
-
-每次功能更新先修改 `VERSION`，发行脚本会用它更新 App 内版本号并生成对应名称的 DMG/ZIP；脚本会先清空旧发行包。
-构建缓存和临时 app 包可用 `scripts/clean-generated.sh` 清理。
-
-## 目录
-
-- `Sources/FormatConverterCore/`：转换核心，不依赖界面状态。
-- `Sources/ForCon/`：SwiftUI macOS 应用。
-- `Tests/FormatConverterCoreTests/`：核心转换回归测试。
-- `REQUIREMENTS.md`：需求说明。
-- `DESIGN.md`：设计与技术决策。
-- `PLAN.md`：开发计划。
-- `COMPATIBILITY.md`：兼容格式清单。
-- `VERSION`：当前发行版本号。
-
-## 注意
-
-视频转换优先使用系统 AVFoundation；更宽的图片、视频和文档格式会自动调用 Homebrew 安装的 ImageMagick、FFmpeg、Pandoc 或 LibreOffice。部分格式仍会受底层工具自身编解码支持限制。
+ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片、视频和文档格式依赖本机安装的转换工具，例如 ImageMagick、FFmpeg、Pandoc 和 LibreOffice。部分格式能否成功转换，仍取决于这些本机工具的编解码支持。
 
 ---
 
-# ForCon English
+# ForCon
 
-ForCon is a native macOS format converter built with SwiftUI. The conversion logic is isolated in the `FormatConverterCore` module so it can be tested and extended independently from the UI.
+ForCon is a native macOS format converter for batch image, video, and document conversion.
+
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg)
 
 ## Features
 
-- Images: convert between `png`, `jpg/jpeg`, `tiff`, `gif`, `bmp`, and `heic`.
-- Videos: export `mov`, `mp4`, and `m4v` through AVFoundation.
-- Documents: convert text-based files to `pdf`, `txt`, `rtf`, and `html`; export PDF text or render PDF pages as `png/jpg`.
-- Extended backends: ImageMagick, FFmpeg, Pandoc, and LibreOffice.
-- Batch conversion, drag and drop, output folder selection, and result history.
-- Type-specific settings for images, videos, and documents, with a scrollable sidebar for smaller windows.
-- First launch guides the user through output folder permission setup.
-- The macOS app menu contains "About ForCon" with version and trust information.
-- The File menu includes Add Files, Choose Output Folder, Start Conversion, Clear List, and Auto Update.
-- Auto Update reads a GitHub Releases manifest, downloads the new DMG, verifies SHA-256, installs it, and restarts the app.
-- ForCon remembers the last selected mode, output formats, output folder, and common settings.
-- Manual Image/Video/Document modes reject mismatched files before sending them to the wrong backend.
-- Auto mode converts mixed batches by using the selected output format for each detected file type.
-- Popular input and output formats are listed in `COMPATIBILITY.md`.
+- Add files in batches, including drag and drop.
+- Automatically detect image, video, and document files.
+- In Auto mode, choose separate output formats for images, videos, and documents.
+- Convert common image formats such as PNG, JPG, JPEG, TIFF, GIF, BMP, HEIC, WEBP, AVIF, and ICO.
+- Convert common video formats such as MP4, MOV, M4V, MKV, AVI, WEBM, and 3GP.
+- Convert common document formats such as PDF, TXT, RTF, HTML, DOCX, ODT, EPUB, and Markdown.
+- Common settings for image quality, image size, video quality, audio removal, and PDF image scale.
+- Remembers the last selected mode, output formats, output folder, and common settings.
+- Supports GitHub Releases based online updates with SHA-256 verification, automatic installation, and restart.
 
-## Trust Notes
+## Installation
 
-- Files are processed locally on the Mac and are not uploaded to cloud services or third-party servers.
-- Output files are written only to the user-selected output folder.
-- The update source is contacted only when the user clicks Auto Update; downloaded installers are verified with SHA-256 before installation.
-- Conversion capabilities come from macOS system frameworks and locally installed ImageMagick, FFmpeg, Pandoc, and LibreOffice.
-- Release builds are locally ad-hoc signed and are not notarized with an Apple Developer ID.
+1. Download the latest DMG.
+2. Open the DMG.
+3. Drag `ForCon.app` into `Applications`.
+4. On first launch, if macOS shows a security prompt, right-click `ForCon.app` and choose "Open".
 
-## Development
+## How To Use
 
-```bash
-swift build
-swift test
-swift run ForCon
-```
+1. Click "Add Files", or drag files into the window.
+2. Choose Auto, Image, Video, or Document mode.
+3. Choose the output format.
+4. Adjust Common Settings if needed.
+5. Choose an output folder.
+6. Click Start Conversion.
 
-`swift run` launches the debug macOS window. To build a double-clickable `.app`:
+## Auto Update
 
-```bash
-scripts/package-app.sh
-open dist/ForCon.app
-```
+When you click Auto Update, ForCon will:
 
-To create local release packages:
+- Read the update manifest from GitHub Releases.
+- Download the new DMG.
+- Verify the SHA-256 checksum.
+- Replace `/Applications/ForCon.app` automatically.
+- Reopen the updated ForCon app.
 
-```bash
-scripts/package-release.sh
-```
+## Privacy And Trust
 
-To build a package that points to GitHub Releases:
+- ForCon processes files locally on your Mac.
+- Files are not uploaded to cloud services or third-party servers.
+- Output files are written only to the folder you choose.
+- GitHub Releases is contacted only when you click Auto Update.
+- Downloaded update packages are verified with SHA-256 before installation.
+- Current release builds are locally ad-hoc signed and are not notarized with an Apple Developer ID.
 
-```bash
-FORCON_GITHUB_REPOSITORY='MartinG031/ForCon' scripts/package-release.sh
-```
+## Conversion Notes
 
-To publish directly to GitHub Releases:
-
-```bash
-FORCON_GITHUB_REPOSITORY='MartinG031/ForCon' scripts/package-github-release.sh
-```
-
-The GitHub repository must be public so the app can read `latest.json` and download the DMG without authentication. The script uploads `ForCon-version.dmg`, `ForCon-version.zip`, and `latest.json` to the `vversion` release tag.
-
-Default update manifest URL:
-
-```text
-https://github.com/MartinG031/ForCon/releases/latest/download/latest.json
-```
-
-You can also point the release package to any custom update source:
-
-```bash
-FORCON_UPDATE_MANIFEST_URL='https://example.com/forcon/latest.json' \
-FORCON_UPDATE_DOWNLOAD_URL='https://example.com/forcon/ForCon-0.1.15.dmg' \
-scripts/package-release.sh
-```
-
-Manifest format:
-
-```json
-{
-  "version": "0.1.15",
-  "downloadURL": "https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg",
-  "sha256": "SHA-256 of the DMG",
-  "notes": "ForCon 0.1.15"
-}
-```
-
-Before each feature release, update `VERSION`. Release scripts use it for the app bundle version, DMG/ZIP names, and update manifest. Old local DMG/ZIP packages are removed before new release packages are generated.
-
-Build caches and temporary app bundles can be removed with:
-
-```bash
-scripts/clean-generated.sh
-```
-
-## Project Structure
-
-- `Sources/FormatConverterCore/`: conversion core, independent from UI state.
-- `Sources/ForCon/`: SwiftUI macOS app.
-- `Tests/FormatConverterCoreTests/`: conversion regression tests.
-- `REQUIREMENTS.md`: requirements.
-- `DESIGN.md`: design and technical decisions.
-- `PLAN.md`: development plan.
-- `COMPATIBILITY.md`: supported format list.
-- `VERSION`: current release version.
-
-## Notes
-
-Video conversion prefers AVFoundation where possible. Broader image, video, and document format support is provided by local Homebrew-installed tools such as ImageMagick, FFmpeg, Pandoc, and LibreOffice. Some formats still depend on the codecs and import/export capabilities available in those tools.
+ForCon uses macOS system capabilities for common conversions where possible. Broader image, video, and document support depends on locally installed tools such as ImageMagick, FFmpeg, Pandoc, and LibreOffice. Some formats may still depend on the codecs and import/export support available in those tools.
