@@ -192,8 +192,9 @@ final class ConverterViewModel {
         do {
             let result = try await updateManager.checkForUpdates()
             updateMessage = result.message
-            if let downloadedURL = result.downloadedURL {
-                NSWorkspace.shared.open(downloadedURL)
+            if result.shouldRestart {
+                try? await Task.sleep(for: .seconds(1))
+                NSApp.terminate(nil)
             }
         } catch {
             updateMessage = error.localizedDescription
