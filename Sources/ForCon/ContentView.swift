@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = ConverterViewModel()
+    @State private var didCheckForUpdatesOnLaunch = false
     @AppStorage("startup.permissions.completed") private var startupPermissionsCompleted = false
 
     var body: some View {
@@ -26,6 +27,11 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .forConCheckForUpdates)) { _ in
             Task { await viewModel.checkForUpdates() }
+        }
+        .task {
+            guard !didCheckForUpdatesOnLaunch else { return }
+            didCheckForUpdatesOnLaunch = true
+            await viewModel.checkForUpdatesOnLaunch()
         }
         .sheet(isPresented: Binding(
             get: { !startupPermissionsCompleted },

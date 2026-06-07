@@ -224,6 +224,20 @@ final class ConverterViewModel {
         }
     }
 
+    func checkForUpdatesOnLaunch() async {
+        guard !isCheckingForUpdate else { return }
+        isCheckingForUpdate = true
+        updateMessage = "正在检查更新..."
+        defer { isCheckingForUpdate = false }
+
+        do {
+            let availability = try await updateManager.checkAvailability()
+            updateMessage = availability.message
+        } catch {
+            updateMessage = "自动检查更新失败：\(error.localizedDescription)"
+        }
+    }
+
     private func normalizeTargetExtension() {
         let outputs = availableOutputExtensions
         let saved = defaults.string(forKey: targetKey(for: category))

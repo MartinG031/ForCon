@@ -15,6 +15,21 @@ struct UpdateCheckResult {
     let downloadedURL: URL?
 }
 
+struct UpdateAvailability: Sendable {
+    let isUpdateAvailable: Bool
+    let latestVersion: String
+    let currentVersion: String
+    let notes: String?
+
+    var message: String {
+        if isUpdateAvailable {
+            "发现 ForCon \(latestVersion)，点击自动更新安装。"
+        } else {
+            "当前已是最新版本 \(currentVersion)。"
+        }
+    }
+}
+
 enum UpdateError: Error, LocalizedError {
     case missingManifestURL
     case invalidDownload
@@ -42,9 +57,20 @@ enum UpdateError: Error, LocalizedError {
 }
 
 final class UpdateManager: Sendable {
+    func checkAvailability() async throws -> UpdateAvailability {
+        let manifest = try await loadManifest()
+        let currentVersion = currentVersion()
+        return UpdateAvailability(
+            isUpdateAvailable: Self.compare(manifest.version, currentVersion) == .orderedDescending,
+            latestVersion: manifest.version,
+            currentVersion: currentVersion,
+            notes: manifest.notes
+        )
+    }
+
     func checkForUpdates() async throws -> UpdateCheckResult {
         let manifest = try await loadManifest()
-        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        let currentVersion = currentVersion()
 
         guard Self.compare(manifest.version, currentVersion) == .orderedDescending else {
             return UpdateCheckResult(
@@ -77,6 +103,10 @@ final class UpdateManager: Sendable {
             data = remoteData
         }
         return try JSONDecoder().decode(UpdateManifest.self, from: data)
+    }
+
+    private func currentVersion() -> String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
 
     private func download(_ manifest: UpdateManifest) async throws -> URL {
