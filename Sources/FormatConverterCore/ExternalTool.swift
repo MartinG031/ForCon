@@ -25,21 +25,29 @@ enum ExternalTool {
     }
 
     static func run(_ executable: String, arguments: [String]) throws {
+        let logURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("forcon-tool-\(UUID().uuidString).log")
+        FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        let logHandle = try FileHandle(forWritingTo: logURL)
+        defer {
+            try? logHandle.close()
+            try? FileManager.default.removeItem(at: logURL)
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.environment = environment()
-
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-        process.standardError = outputPipe
+        process.standardOutput = logHandle
+        process.standardError = logHandle
 
         try process.run()
         process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
-            let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?
+            try? logHandle.synchronize()
+            let data = (try? Data(contentsOf: logURL)) ?? Data()
+            let output = String(data: data.suffix(16_384), encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             throw ExternalToolError.failed(
                 tool: URL(fileURLWithPath: executable).lastPathComponent,

@@ -7,6 +7,7 @@ public final class FormatConversionEngine: @unchecked Sendable {
     private let externalImageConverter = ExternalImageConverter()
     private let externalVideoConverter = ExternalVideoConverter()
     private let externalDocumentConverter = ExternalDocumentConverter()
+    private let throttle = ConversionThrottle()
 
     public init() {}
 
@@ -53,69 +54,20 @@ public final class FormatConversionEngine: @unchecked Sendable {
             let targetExtension = resolvedTargetExtension(for: category, request: request)
             try validateOutput(targetExtension, for: category)
 
+            await throttle.acquire(for: category)
             let outputURLs: [URL]
-            switch category {
-            case .image:
-                let outputURL = try FileNamer.uniqueOutputURL(
+            do {
+                outputURLs = try await performConversion(
                     inputURL: inputURL,
                     outputDirectory: request.outputDirectory,
-                    targetExtension: targetExtension
+                    targetExtension: targetExtension,
+                    category: category,
+                    options: request.options
                 )
-                if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                    try imageConverter.convert(
-                        inputURL: inputURL,
-                        outputURL: outputURL,
-                        targetExtension: targetExtension,
-                        options: request.options
-                    )
-                } else {
-                    try externalImageConverter.convert(
-                        inputURL: inputURL,
-                        outputURL: outputURL,
-                        targetExtension: targetExtension,
-                        options: request.options
-                    )
-                }
-                outputURLs = [outputURL]
-            case .video:
-                let outputURL = try FileNamer.uniqueOutputURL(
-                    inputURL: inputURL,
-                    outputDirectory: request.outputDirectory,
-                    targetExtension: targetExtension
-                )
-                if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                    try await videoConverter.convert(
-                        inputURL: inputURL,
-                        outputURL: outputURL,
-                        targetExtension: targetExtension,
-                        options: request.options
-                    )
-                } else {
-                    try externalVideoConverter.convert(
-                        inputURL: inputURL,
-                        outputURL: outputURL,
-                        targetExtension: targetExtension,
-                        options: request.options
-                    )
-                }
-                outputURLs = [outputURL]
-            case .document:
-                if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                    outputURLs = try documentConverter.convert(
-                        inputURL: inputURL,
-                        outputDirectory: request.outputDirectory,
-                        targetExtension: targetExtension,
-                        options: request.options
-                    )
-                } else {
-                    outputURLs = try externalDocumentConverter.convert(
-                        inputURL: inputURL,
-                        outputDirectory: request.outputDirectory,
-                        targetExtension: targetExtension
-                    )
-                }
-            case .automatic:
-                throw ConverterError.unsupportedInput(inputURL)
+                await throttle.release(for: category)
+            } catch {
+                await throttle.release(for: category)
+                throw error
             }
 
             return ConversionResult(
@@ -131,6 +83,80 @@ public final class FormatConversionEngine: @unchecked Sendable {
                 category: detectedCategory(for: inputURL) ?? request.category,
                 status: .failed(error.localizedDescription)
             )
+        }
+    }
+
+    private func performConversion(
+        inputURL: URL,
+        outputDirectory: URL,
+        targetExtension: String,
+        category: FormatCategory,
+        options: ConversionOptions
+    ) async throws -> [URL] {
+        switch category {
+        case .image:
+            let outputURL = try FileNamer.uniqueOutputURL(
+                inputURL: inputURL,
+                outputDirectory: outputDirectory,
+                targetExtension: targetExtension
+            )
+            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
+                try imageConverter.convert(
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    targetExtension: targetExtension,
+                    options: options
+                )
+            } else {
+                try externalImageConverter.convert(
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    targetExtension: targetExtension,
+                    options: options
+                )
+            }
+            return [outputURL]
+
+        case .video:
+            let outputURL = try FileNamer.uniqueOutputURL(
+                inputURL: inputURL,
+                outputDirectory: outputDirectory,
+                targetExtension: targetExtension
+            )
+            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
+                try await videoConverter.convert(
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    targetExtension: targetExtension,
+                    options: options
+                )
+            } else {
+                try externalVideoConverter.convert(
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    targetExtension: targetExtension,
+                    options: options
+                )
+            }
+            return [outputURL]
+
+        case .document:
+            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
+                return try documentConverter.convert(
+                    inputURL: inputURL,
+                    outputDirectory: outputDirectory,
+                    targetExtension: targetExtension,
+                    options: options
+                )
+            }
+            return try externalDocumentConverter.convert(
+                inputURL: inputURL,
+                outputDirectory: outputDirectory,
+                targetExtension: targetExtension
+            )
+
+        case .automatic:
+            throw ConverterError.unsupportedInput(inputURL)
         }
     }
 

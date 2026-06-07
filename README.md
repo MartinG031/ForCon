@@ -2,7 +2,7 @@
 
 ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg)
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.16.dmg)
 
 ## 主要功能
 
@@ -13,6 +13,7 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 - 支持常用视频格式转换，例如 MP4、MOV、M4V、MKV、AVI、WEBM、3GP 等。
 - 支持常用文档格式转换，例如 PDF、TXT、RTF、HTML、DOCX、ODT、EPUB、Markdown 等。
 - 提供图片质量、图片尺寸、视频质量、移除音频、PDF 图片倍率等常用设置。
+- 自动控制图片、视频、文档转换并发，减少大批量任务时的卡顿和资源争用。
 - 记住上一次选择的类型、输出格式、输出目录和常用设置。
 - 支持 GitHub Releases 在线更新，下载后校验 SHA-256，并自动安装重启。
 
@@ -60,7 +61,7 @@ ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片
 
 ForCon is a native macOS format converter for batch image, video, and document conversion.
 
-[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.15.dmg)
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.16.dmg)
 
 ## Features
 
@@ -71,6 +72,7 @@ ForCon is a native macOS format converter for batch image, video, and document c
 - Convert common video formats such as MP4, MOV, M4V, MKV, AVI, WEBM, and 3GP.
 - Convert common document formats such as PDF, TXT, RTF, HTML, DOCX, ODT, EPUB, and Markdown.
 - Common settings for image quality, image size, video quality, audio removal, and PDF image scale.
+- Automatically limits image, video, and document conversion concurrency to reduce stalls and resource contention during large batches.
 - Remembers the last selected mode, output formats, output folder, and common settings.
 - Supports GitHub Releases based online updates with SHA-256 verification, automatic installation, and restart.
 
