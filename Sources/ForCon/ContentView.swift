@@ -371,6 +371,11 @@ private struct StartupPermissionView: View {
 private struct SettingsView: View {
     @Bindable var viewModel: ConverterViewModel
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("settings.section.outputDirectory.expanded") private var outputDirectoryExpanded = true
+    @AppStorage("settings.section.image.expanded") private var imageExpanded = true
+    @AppStorage("settings.section.video.expanded") private var videoExpanded = true
+    @AppStorage("settings.section.document.expanded") private var documentExpanded = true
+    @AppStorage("settings.section.app.expanded") private var appExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -406,7 +411,7 @@ private struct SettingsView: View {
     }
 
     private var appSettings: some View {
-        SettingsSection(title: "应用", icon: "app.badge") {
+        SettingsSection(title: "应用", icon: "app.badge", isExpanded: $appExpanded) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("当前版本")
@@ -433,7 +438,7 @@ private struct SettingsView: View {
     }
 
     private var outputDirectorySettings: some View {
-        SettingsSection(title: "输出目录", icon: "folder") {
+        SettingsSection(title: "输出目录", icon: "folder", isExpanded: $outputDirectoryExpanded) {
             VStack(alignment: .leading, spacing: 12) {
                 Text(viewModel.outputDirectory.path)
                     .font(.callout)
@@ -451,7 +456,7 @@ private struct SettingsView: View {
     }
 
     private var imageSettings: some View {
-        SettingsSection(title: "图片设置", icon: "photo") {
+        SettingsSection(title: "图片设置", icon: "photo", isExpanded: $imageExpanded) {
             VStack(alignment: .leading, spacing: 14) {
                 imageQualityControl
                 Toggle("限制图片尺寸", isOn: $viewModel.resizeImages)
@@ -469,7 +474,7 @@ private struct SettingsView: View {
     }
 
     private var videoSettings: some View {
-        SettingsSection(title: "视频设置", icon: "film") {
+        SettingsSection(title: "视频设置", icon: "film", isExpanded: $videoExpanded) {
             VStack(alignment: .leading, spacing: 14) {
                 Picker("视频质量", selection: $viewModel.videoQuality) {
                     ForEach(VideoQuality.allCases) { quality in
@@ -483,7 +488,7 @@ private struct SettingsView: View {
     }
 
     private var documentSettings: some View {
-        SettingsSection(title: "文档设置", icon: "doc.text") {
+        SettingsSection(title: "文档设置", icon: "doc.text", isExpanded: $documentExpanded) {
             documentScaleControl
         }
     }
@@ -516,19 +521,25 @@ private struct SettingsView: View {
 private struct SettingsSection<Content: View>: View {
     let title: String
     let icon: String
+    @Binding var isExpanded: Bool
     let content: Content
 
-    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
+    init(title: String, icon: String, isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content) {
         self.title = title
         self.icon = icon
+        self._isExpanded = isExpanded
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 12) {
+                content
+            }
+            .padding(.top, 12)
+        } label: {
             Label(title, systemImage: icon)
                 .font(.headline)
-            content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

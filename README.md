@@ -2,7 +2,7 @@
 
 ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.23.dmg)
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.24.dmg)
 
 ## 主要功能
 
@@ -63,7 +63,7 @@ ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片
 
 ForCon is a native macOS format converter for batch image, video, and document conversion.
 
-[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.23.dmg)
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.24.dmg)
 
 ## Features
 
