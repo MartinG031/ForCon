@@ -276,8 +276,18 @@ struct ContentView: View {
                 .font(.headline)
             Spacer()
             if viewModel.isConverting {
-                ProgressView(value: viewModel.progress)
-                    .frame(width: 180)
+                HStack(spacing: 8) {
+                    Text("\(viewModel.processedCount)/\(viewModel.totalCount)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    if let estimatedRemainingText = viewModel.estimatedRemainingText {
+                        Text(estimatedRemainingText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    ProgressView(value: viewModel.progress)
+                        .frame(width: 180)
+                }
             }
             Button {
                 viewModel.clear()

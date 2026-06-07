@@ -42,12 +42,16 @@ final class ConverterViewModel {
     var hasError = false
     var isConverting = false
     var progress = 0.0
+    var processedCount = 0
+    var totalCount = 0
+    var estimatedRemainingText: String?
     var isCheckingForUpdate = false
     var updateMessage: String?
 
     private let engine = FormatConversionEngine()
     private let updateManager = UpdateManager()
     private let defaults = UserDefaults.standard
+    private var conversionStartDate: Date?
 
     init() {
         loadSettings()
@@ -135,6 +139,10 @@ final class ConverterViewModel {
         message = nil
         hasError = false
         progress = 0
+        processedCount = 0
+        totalCount = 0
+        estimatedRemainingText = nil
+        conversionStartDate = nil
     }
 
     func detectedCategory(for url: URL) -> FormatCategory? {
@@ -148,9 +156,13 @@ final class ConverterViewModel {
     func convert() async {
         guard canConvert else { return }
         isConverting = true
-        progress = 0.05
+        progress = 0
+        processedCount = 0
+        totalCount = inputURLs.count
+        estimatedRemainingText = "正在估算"
+        conversionStartDate = Date()
         results = []
-        message = "正在转换..."
+        message = "正在转换 0/\(totalCount)"
         hasError = false
 
         let request = ConversionRequest(
@@ -173,14 +185,25 @@ final class ConverterViewModel {
                 documentImageScale: documentImageScale
             )
         )
-        let converted = await engine.convert(request)
+        let converted = await engine.convert(request) { result in
+            await MainActor.run {
+                self.results.append(result)
+                self.processedCount += 1
+                self.progress = self.totalCount == 0 ? 0 : Double(self.processedCount) / Double(self.totalCount)
+                self.message = "正在转换 \(self.processedCount)/\(self.totalCount)"
+                self.estimatedRemainingText = self.estimatedRemainingDurationText()
+                self.hasError = self.results.contains { !$0.status.isSucceeded }
+            }
+        }
         results = converted
         let successCount = converted.filter(\.status.isSucceeded).count
         let failedCount = converted.count - successCount
         progress = 1
         isConverting = false
         hasError = failedCount > 0
+        estimatedRemainingText = conversionElapsedText()
         message = failedCount == 0 ? "已完成 \(successCount) 个文件" : "完成 \(successCount) 个，失败 \(failedCount) 个"
+        conversionStartDate = nil
     }
 
     func checkForUpdates() async {
@@ -262,6 +285,37 @@ final class ConverterViewModel {
 
     private func readDouble(_ key: String, default defaultValue: Double) -> Double {
         defaults.object(forKey: key) == nil ? defaultValue : defaults.double(forKey: key)
+    }
+
+    private func estimatedRemainingDurationText() -> String? {
+        guard let conversionStartDate else { return nil }
+        guard processedCount > 0, totalCount > processedCount else {
+            return processedCount >= totalCount ? nil : "正在估算"
+        }
+        let elapsed = Date().timeIntervalSince(conversionStartDate)
+        let average = elapsed / Double(processedCount)
+        let remaining = average * Double(totalCount - processedCount)
+        return "预计剩余 \(formatDuration(remaining))"
+    }
+
+    private func conversionElapsedText() -> String? {
+        guard let conversionStartDate else { return nil }
+        return "用时 \(formatDuration(Date().timeIntervalSince(conversionStartDate)))"
+    }
+
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval.rounded()))
+        if seconds < 60 {
+            return "\(seconds)秒"
+        }
+        let minutes = seconds / 60
+        let remainder = seconds % 60
+        if minutes < 60 {
+            return remainder == 0 ? "\(minutes)分钟" : "\(minutes)分\(remainder)秒"
+        }
+        let hours = minutes / 60
+        let minuteRemainder = minutes % 60
+        return minuteRemainder == 0 ? "\(hours)小时" : "\(hours)小时\(minuteRemainder)分钟"
     }
 
     private func targetKey(for category: FormatCategory) -> String {

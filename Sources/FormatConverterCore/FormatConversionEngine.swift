@@ -32,7 +32,10 @@ public final class FormatConversionEngine: @unchecked Sendable {
         return nil
     }
 
-    public func convert(_ request: ConversionRequest) async -> [ConversionResult] {
+    public func convert(
+        _ request: ConversionRequest,
+        onResult: (@Sendable (ConversionResult) async -> Void)? = nil
+    ) async -> [ConversionResult] {
         await withTaskGroup(of: ConversionResult.self) { group in
             for inputURL in request.inputURLs {
                 group.addTask {
@@ -43,6 +46,9 @@ public final class FormatConversionEngine: @unchecked Sendable {
             var results: [ConversionResult] = []
             for await result in group {
                 results.append(result)
+                if let onResult {
+                    await onResult(result)
+                }
             }
             return results.sorted { $0.inputURL.lastPathComponent < $1.inputURL.lastPathComponent }
         }
