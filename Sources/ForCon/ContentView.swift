@@ -92,9 +92,6 @@ struct ContentView: View {
                 }
                 .padding(20)
             }
-
-            Divider()
-
             Button {
                 isSettingsPresented = true
             } label: {
@@ -103,7 +100,8 @@ struct ContentView: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.large)
-            .padding(16)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
         }
         .frame(minWidth: 280)
     }
@@ -391,8 +389,6 @@ private struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    appSettings
-                    Divider()
                     outputDirectorySettings
                     Divider()
                     imageSettings
@@ -400,11 +396,13 @@ private struct SettingsView: View {
                     videoSettings
                     Divider()
                     documentSettings
+                    Divider()
+                    appSettings
                 }
-                .padding(20)
+                .padding(24)
             }
         }
-        .frame(width: 520, height: 620)
+        .frame(width: 620, height: 720)
     }
 
     private var appSettings: some View {
