@@ -77,6 +77,7 @@ final class FormatConversionEngineTests: XCTestCase {
     }
 
     func testConvertsImageThroughImageMagick() async throws {
+        try XCTSkipUnless(isExternalToolInstalled("imagemagick"), "ImageMagick is not installed")
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("input.png")
         try makePNG(at: input)
@@ -97,10 +98,12 @@ final class FormatConversionEngineTests: XCTestCase {
         let result = await FormatConversionEngine().convert(request)
         XCTAssertEqual(result.count, 1)
         XCTAssertTrue(result[0].status.isSucceeded)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        let output = try XCTUnwrap(result[0].outputURLs.first)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: output.path))
     }
 
     func testConvertsMarkdownThroughPandoc() async throws {
+        try XCTSkipUnless(isExternalToolInstalled("pandoc"), "Pandoc is not installed")
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("notes.md")
         try "# Title\n\nForCon document conversion.".write(to: input, atomically: true, encoding: .utf8)
@@ -115,7 +118,8 @@ final class FormatConversionEngineTests: XCTestCase {
         let result = await FormatConversionEngine().convert(request)
         XCTAssertEqual(result.count, 1)
         XCTAssertTrue(result[0].status.isSucceeded)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        let output = try XCTUnwrap(result[0].outputURLs.first)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: output.path))
     }
 
     func testConvertsImage() async throws {
@@ -133,7 +137,8 @@ final class FormatConversionEngineTests: XCTestCase {
         let result = await FormatConversionEngine().convert(request)
         XCTAssertEqual(result.count, 1)
         XCTAssertTrue(result[0].status.isSucceeded)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        let output = try XCTUnwrap(result[0].outputURLs.first)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: output.path))
     }
 
     func testConvertsTextToPDF() async throws {
@@ -151,7 +156,12 @@ final class FormatConversionEngineTests: XCTestCase {
         let result = await FormatConversionEngine().convert(request)
         XCTAssertEqual(result.count, 1)
         XCTAssertTrue(result[0].status.isSucceeded)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        let output = try XCTUnwrap(result[0].outputURLs.first)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: output.path))
+    }
+
+    private func isExternalToolInstalled(_ name: String) -> Bool {
+        ExternalTool.requiredToolStatuses().first { $0.name == name }?.isInstalled == true
     }
 
     private func temporaryDirectory() throws -> URL {

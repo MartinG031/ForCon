@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.28]
+
+- Fixed GitHub Actions test stability by skipping external-tool integration tests when optional local tools are not installed on the runner.
+
 ## [0.1.27]
 
 - Fixed GitHub Actions Swift 5.10 build compatibility by marking SwiftUI views that access the main-actor view model as `@MainActor`.
