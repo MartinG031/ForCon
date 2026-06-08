@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.31]
+
+- Kept the adaptive macOS UI layer from 0.1.30.
+- Hardened GitHub release publishing so `latest.json` is regenerated from the final DMG SHA before upload.
+- Split release asset uploads to reduce stale manifest risk when GitHub Actions republishes a tag.
+
 ## [0.1.30]
 
 - Added adaptive macOS UI styling with Liquid Glass on macOS 26+ when built with a compatible SDK.
