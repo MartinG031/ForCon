@@ -2,6 +2,7 @@ import AppKit
 import FormatConverterCore
 import SwiftUI
 
+@MainActor
 struct ContentView: View {
     @State private var viewModel = ConverterViewModel()
     @State private var didCheckForUpdatesOnLaunch = false
@@ -299,6 +300,7 @@ struct ContentView: View {
     }
 }
 
+@MainActor
 private struct StartupPermissionView: View {
     @Bindable var viewModel: ConverterViewModel
     let onComplete: () -> Void
@@ -368,6 +370,7 @@ private struct StartupPermissionView: View {
     }
 }
 
+@MainActor
 private struct SettingsView: View {
     @Bindable var viewModel: ConverterViewModel
     @Environment(\.dismiss) private var dismiss
@@ -551,6 +554,7 @@ private struct SettingsView: View {
     }
 }
 
+@MainActor
 private struct SettingsSection<Content: View>: View {
     let title: String
     let icon: String

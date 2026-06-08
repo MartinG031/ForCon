@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.27]
+
+- Fixed GitHub Actions Swift 5.10 build compatibility by marking SwiftUI views that access the main-actor view model as `@MainActor`.
+
 ## [0.1.26]
 
 - Moved manual update installation to the macOS ForCon app menu.
