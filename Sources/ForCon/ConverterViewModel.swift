@@ -231,6 +231,37 @@ final class ConverterViewModel {
         }
     }
 
+    func presentUpdateDialog() async {
+        guard !isCheckingForUpdate else { return }
+        closeSecondaryWindows()
+        isCheckingForUpdate = true
+        updateMessage = "正在检查更新..."
+        defer { isCheckingForUpdate = false }
+
+        do {
+            let availability = try await updateManager.checkAvailability()
+            updateMessage = availability.message
+            guard availability.isUpdateAvailable else {
+                showUpToDateAlert(availability)
+                return
+            }
+
+            guard showUpdateAvailableAlert(availability) else { return }
+            closeSecondaryWindows()
+            updateMessage = "正在下载 ForCon \(availability.latestVersion)..."
+            let result = try await updateManager.checkForUpdates()
+            updateMessage = result.message
+            if result.shouldRestart {
+                closeSecondaryWindows()
+                try? await Task.sleep(for: .seconds(1))
+                exit(0)
+            }
+        } catch {
+            updateMessage = error.localizedDescription
+            showUpdateErrorAlert(error)
+        }
+    }
+
     func checkForUpdatesOnLaunch() async {
         guard !isCheckingForUpdate else { return }
         isCheckingForUpdate = true
@@ -247,6 +278,45 @@ final class ConverterViewModel {
 
     func refreshExternalToolStatuses() {
         externalToolStatuses = ExternalTool.requiredToolStatuses()
+    }
+
+    private func showUpdateAvailableAlert(_ availability: UpdateAvailability) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "发现 ForCon \(availability.latestVersion)"
+        alert.informativeText = [
+            "当前版本：\(availability.currentVersion)",
+            availability.notes
+        ]
+        .compactMap { $0 }
+        .joined(separator: "\n\n")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "更新版本")
+        alert.addButton(withTitle: "稍后")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    private func showUpToDateAlert(_ availability: UpdateAvailability) {
+        let alert = NSAlert()
+        alert.messageText = "已是最新版本"
+        alert.informativeText = "当前版本：\(availability.currentVersion)"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private func showUpdateErrorAlert(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "更新失败"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private func closeSecondaryWindows() {
+        for window in NSApp.windows where window.isSheet || window.title != "ForCon" {
+            window.close()
+        }
     }
 
     private func normalizeTargetExtension() {

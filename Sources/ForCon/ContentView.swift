@@ -28,7 +28,7 @@ struct ContentView: View {
             viewModel.clear()
         }
         .onReceive(NotificationCenter.default.publisher(for: .forConCheckForUpdates)) { _ in
-            Task { await viewModel.checkForUpdates() }
+            Task { await viewModel.presentUpdateDialog() }
         }
         .task {
             guard !didCheckForUpdatesOnLaunch else { return }

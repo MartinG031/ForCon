@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.29]
+
+- Added a manual update dialog from the macOS ForCon menu.
+- The update dialog now shows either an "更新版本" action when an update exists or "已是最新版本" when no update exists.
+- Closing secondary windows before installing updates reduces the chance of sheets or auxiliary windows blocking app exit.
+
 ## [0.1.28]
 
 - Fixed GitHub Actions test stability by skipping external-tool integration tests when optional local tools are not installed on the runner.
