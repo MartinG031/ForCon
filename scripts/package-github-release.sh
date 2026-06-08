@@ -58,11 +58,11 @@ JSON
 
 if gh release view "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" >/dev/null 2>&1; then
     gh release edit "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" --latest
+    gh release upload "$TAG" "$DMG_ASSET" "$ZIP_ASSET" --repo "$FORCON_GITHUB_REPOSITORY" --clobber
+    gh release upload "$TAG" "$MANIFEST_ASSET" --repo "$FORCON_GITHUB_REPOSITORY" --clobber
 else
-    gh release create "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" --latest
+    gh release create "$TAG" "$DMG_ASSET" "$ZIP_ASSET" "$MANIFEST_ASSET" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" --latest
 fi
-gh release upload "$TAG" "$DMG_ASSET" "$ZIP_ASSET" --repo "$FORCON_GITHUB_REPOSITORY" --clobber
-gh release upload "$TAG" "$MANIFEST_ASSET" --repo "$FORCON_GITHUB_REPOSITORY" --clobber
 
 echo "https://github.com/$FORCON_GITHUB_REPOSITORY/releases/latest/download/latest.json"
 echo "https://github.com/$FORCON_GITHUB_REPOSITORY/releases/latest/download/$RELEASE_NAME.dmg"

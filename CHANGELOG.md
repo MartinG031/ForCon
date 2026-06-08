@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.32]
+
+- Kept the adaptive macOS UI layer from 0.1.30.
+- Prevented GitHub Actions from republishing a tag when the release already has the final DMG, ZIP, and update manifest.
+- Restored atomic asset creation for new GitHub releases to avoid local and CI release assets racing each other.
+
 ## [0.1.31]
 
 - Kept the adaptive macOS UI layer from 0.1.30.

@@ -23,7 +23,31 @@ jobs:
       - name: Run tests
         run: swift test
 
+      - name: Check existing release assets
+        id: release_assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          dmg="ForCon-${version}.dmg"
+          zip="ForCon-${version}.zip"
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets > /tmp/forcon-release-assets.json 2>/dev/null; then
+            python3 - "$dmg" "$zip" <<'PY'
+          import json
+          import sys
+
+          dmg, zip_name = sys.argv[1], sys.argv[2]
+          with open("/tmp/forcon-release-assets.json", "r", encoding="utf-8") as file:
+              names = {asset["name"] for asset in json.load(file)["assets"]}
+          required = {dmg, zip_name, "latest.json"}
+          print(f"skip_publish={'true' if required.issubset(names) else 'false'}")
+          PY
+          else
+            echo "skip_publish=false"
+          fi >> "$GITHUB_OUTPUT"
+
       - name: Build and publish release
+        if: steps.release_assets.outputs.skip_publish != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCON_GITHUB_REPOSITORY: ${{ github.repository }}
