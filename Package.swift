@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 5.10
 
 import PackageDescription
 
@@ -18,12 +18,7 @@ let package = Package(
         )
     ],
     targets: [
-        .target(
-            name: "FormatConverterCore",
-            swiftSettings: [
-                .enableUpcomingFeature("ExistentialAny")
-            ]
-        ),
+        .target(name: "FormatConverterCore"),
         .executableTarget(
             name: "ForCon",
             dependencies: ["FormatConverterCore"]

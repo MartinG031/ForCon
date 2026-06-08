@@ -2,6 +2,7 @@ import Foundation
 import FormatConverterCore
 import Observation
 import AppKit
+import Darwin
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -223,7 +224,7 @@ final class ConverterViewModel {
             updateMessage = result.message
             if result.shouldRestart {
                 try? await Task.sleep(for: .seconds(1))
-                NSApp.terminate(nil)
+                exit(0)
             }
         } catch {
             updateMessage = error.localizedDescription

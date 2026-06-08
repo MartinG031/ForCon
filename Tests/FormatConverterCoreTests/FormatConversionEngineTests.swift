@@ -1,43 +1,39 @@
 import AppKit
 import Foundation
-import Testing
+import XCTest
 @testable import FormatConverterCore
 
-@Suite("FormatConversionEngine")
-struct FormatConversionEngineTests {
-    @Test("detects categories from file extensions")
-    func detectsCategories() {
+final class FormatConversionEngineTests: XCTestCase {
+    func testDetectsCategories() {
         let engine = FormatConversionEngine()
 
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.png")) == .image)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.avif")) == .image)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.psd")) == .image)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.mov")) == .video)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.mkv")) == .video)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.webm")) == .video)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.pdf")) == .document)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.docx")) == .document)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.odt")) == .document)
-        #expect(engine.detectedCategory(for: URL(filePath: "/tmp/sample.unknown")) == nil)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.png")), .image)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.avif")), .image)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.psd")), .image)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.mov")), .video)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.mkv")), .video)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.webm")), .video)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.pdf")), .document)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.docx")), .document)
+        XCTAssertEqual(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.odt")), .document)
+        XCTAssertNil(engine.detectedCategory(for: URL(fileURLWithPath: "/tmp/sample.unknown")))
     }
 
-    @Test("shows broad popular output formats in the picker lists")
-    func exposesBroadOutputFormats() {
+    func testExposesBroadOutputFormats() {
         let engine = FormatConversionEngine()
 
-        #expect(engine.supportedOutputs(for: .image).contains("webp"))
-        #expect(engine.supportedOutputs(for: .image).contains("avif"))
-        #expect(engine.supportedOutputs(for: .image).contains("svg"))
-        #expect(engine.supportedOutputs(for: .video).contains("mkv"))
-        #expect(engine.supportedOutputs(for: .video).contains("webm"))
-        #expect(engine.supportedOutputs(for: .video).contains("wmv"))
-        #expect(engine.supportedOutputs(for: .document).contains("docx"))
-        #expect(engine.supportedOutputs(for: .document).contains("xlsx"))
-        #expect(engine.supportedOutputs(for: .document).contains("epub"))
+        XCTAssertTrue(engine.supportedOutputs(for: .image).contains("webp"))
+        XCTAssertTrue(engine.supportedOutputs(for: .image).contains("avif"))
+        XCTAssertTrue(engine.supportedOutputs(for: .image).contains("svg"))
+        XCTAssertTrue(engine.supportedOutputs(for: .video).contains("mkv"))
+        XCTAssertTrue(engine.supportedOutputs(for: .video).contains("webm"))
+        XCTAssertTrue(engine.supportedOutputs(for: .video).contains("wmv"))
+        XCTAssertTrue(engine.supportedOutputs(for: .document).contains("docx"))
+        XCTAssertTrue(engine.supportedOutputs(for: .document).contains("xlsx"))
+        XCTAssertTrue(engine.supportedOutputs(for: .document).contains("epub"))
     }
 
-    @Test("rejects files that do not match the selected category")
-    func rejectsCategoryMismatch() async throws {
+    func testRejectsCategoryMismatch() async throws {
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("clip.mov")
         try Data("not a real movie".utf8).write(to: input)
@@ -50,13 +46,12 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        #expect(result.count == 1)
-        #expect(!result[0].status.isSucceeded)
-        #expect(result[0].status.message.contains("当前选择的是图片"))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertFalse(result[0].status.isSucceeded)
+        XCTAssertTrue(result[0].status.message.contains("当前选择的是图片"))
     }
 
-    @Test("automatic mode uses separate targets for each detected category")
-    func automaticModeUsesCategoryTargets() async throws {
+    func testAutomaticModeUsesCategoryTargets() async throws {
         let directory = try temporaryDirectory()
         let image = directory.appendingPathComponent("input.png")
         let video = directory.appendingPathComponent("clip.mov")
@@ -76,13 +71,12 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        let imageResult = try #require(result.first { $0.inputURL == image })
-        #expect(imageResult.status.isSucceeded)
-        #expect(imageResult.outputURLs.first?.pathExtension == "jpg")
+        let imageResult = try XCTUnwrap(result.first { $0.inputURL == image })
+        XCTAssertTrue(imageResult.status.isSucceeded)
+        XCTAssertEqual(imageResult.outputURLs.first?.pathExtension, "jpg")
     }
 
-    @Test("converts PNG image to ICO through ImageMagick")
-    func convertsImageThroughImageMagick() async throws {
+    func testConvertsImageThroughImageMagick() async throws {
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("input.png")
         try makePNG(at: input)
@@ -101,13 +95,12 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        #expect(result.count == 1)
-        #expect(result[0].status.isSucceeded)
-        #expect(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertTrue(result[0].status.isSucceeded)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
     }
 
-    @Test("converts Markdown to DOCX through Pandoc")
-    func convertsMarkdownThroughPandoc() async throws {
+    func testConvertsMarkdownThroughPandoc() async throws {
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("notes.md")
         try "# Title\n\nForCon document conversion.".write(to: input, atomically: true, encoding: .utf8)
@@ -120,13 +113,12 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        #expect(result.count == 1)
-        #expect(result[0].status.isSucceeded)
-        #expect(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertTrue(result[0].status.isSucceeded)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
     }
 
-    @Test("converts PNG image to JPEG")
-    func convertsImage() async throws {
+    func testConvertsImage() async throws {
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("input.png")
         try makePNG(at: input)
@@ -139,13 +131,12 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        #expect(result.count == 1)
-        #expect(result[0].status.isSucceeded)
-        #expect(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertTrue(result[0].status.isSucceeded)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
     }
 
-    @Test("converts plain text to PDF")
-    func convertsTextToPDF() async throws {
+    func testConvertsTextToPDF() async throws {
         let directory = try temporaryDirectory()
         let input = directory.appendingPathComponent("notes.txt")
         try "hello\nformat converter".write(to: input, atomically: true, encoding: .utf8)
@@ -158,9 +149,9 @@ struct FormatConversionEngineTests {
         )
 
         let result = await FormatConversionEngine().convert(request)
-        #expect(result.count == 1)
-        #expect(result[0].status.isSucceeded)
-        #expect(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertTrue(result[0].status.isSucceeded)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: result[0].outputURLs[0].path))
     }
 
     private func temporaryDirectory() throws -> URL {
@@ -181,7 +172,7 @@ struct FormatConversionEngineTests {
         guard let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),
               let data = bitmap.representation(using: .png, properties: [:]) else {
-            Issue.record("Failed to build fixture PNG")
+            XCTFail("Failed to build fixture PNG")
             return
         }
         try data.write(to: url)

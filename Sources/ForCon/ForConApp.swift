@@ -27,6 +27,12 @@ private struct ForConCommands: Commands {
             Button("关于 ForCon") {
                 openWindow(id: "about-forcon")
             }
+
+            Divider()
+
+            Button("检查更新...") {
+                post(.forConCheckForUpdates)
+            }
         }
 
         CommandGroup(replacing: .newItem) {

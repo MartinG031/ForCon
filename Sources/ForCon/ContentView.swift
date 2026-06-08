@@ -429,13 +429,6 @@ private struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
                 }
-
-                Button {
-                    Task { await viewModel.checkForUpdates() }
-                } label: {
-                    Label(viewModel.isCheckingForUpdate ? "检查中..." : "检查并安装更新", systemImage: "arrow.down.circle")
-                }
-                .disabled(viewModel.isCheckingForUpdate)
             }
         }
     }
