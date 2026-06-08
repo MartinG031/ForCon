@@ -47,6 +47,7 @@ final class ConverterViewModel {
     var estimatedRemainingText: String?
     var isCheckingForUpdate = false
     var updateMessage: String?
+    var externalToolStatuses: [ExternalToolStatus] = []
 
     private let engine = FormatConversionEngine()
     private let updateManager = UpdateManager()
@@ -56,6 +57,7 @@ final class ConverterViewModel {
     init() {
         loadSettings()
         normalizeTargetExtension()
+        refreshExternalToolStatuses()
     }
 
     var availableOutputExtensions: [String] {
@@ -240,6 +242,10 @@ final class ConverterViewModel {
         } catch {
             updateMessage = "自动检查更新失败：\(error.localizedDescription)"
         }
+    }
+
+    func refreshExternalToolStatuses() {
+        externalToolStatuses = ExternalTool.requiredToolStatuses()
     }
 
     private func normalizeTargetExtension() {

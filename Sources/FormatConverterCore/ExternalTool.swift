@@ -1,5 +1,33 @@
 import Foundation
 
+public struct ExternalToolStatus: Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let displayName: String
+    public let purpose: String
+    public let executablePath: String?
+    public let installHint: String
+
+    public var isInstalled: Bool {
+        executablePath != nil
+    }
+
+    public init(
+        name: String,
+        displayName: String,
+        purpose: String,
+        executablePath: String?,
+        installHint: String
+    ) {
+        self.id = name
+        self.name = name
+        self.displayName = displayName
+        self.purpose = purpose
+        self.executablePath = executablePath
+        self.installHint = installHint
+    }
+}
+
 enum ExternalToolError: Error, LocalizedError {
     case missing(String)
     case failed(tool: String, message: String)
@@ -14,7 +42,40 @@ enum ExternalToolError: Error, LocalizedError {
     }
 }
 
-enum ExternalTool {
+public enum ExternalTool {
+    public static func requiredToolStatuses() -> [ExternalToolStatus] {
+        [
+            status(
+                name: "imagemagick",
+                displayName: "ImageMagick",
+                purpose: "扩展图片格式转换，例如 AVIF、WEBP、ICO、SVG 等",
+                executableNames: ["magick", "convert"],
+                installHint: "brew install imagemagick"
+            ),
+            status(
+                name: "ffmpeg",
+                displayName: "FFmpeg",
+                purpose: "扩展视频格式转换，例如 MKV、WEBM、AVI、3GP 等",
+                executableNames: ["ffmpeg"],
+                installHint: "brew install ffmpeg"
+            ),
+            status(
+                name: "pandoc",
+                displayName: "Pandoc",
+                purpose: "扩展 Markdown、HTML、DOCX、EPUB 等文档转换",
+                executableNames: ["pandoc"],
+                installHint: "brew install pandoc"
+            ),
+            status(
+                name: "libreoffice",
+                displayName: "LibreOffice",
+                purpose: "扩展 Office 文档导入导出，例如 DOCX、ODT、XLSX 等",
+                executableNames: ["soffice"],
+                installHint: "brew install --cask libreoffice"
+            )
+        ]
+    }
+
     static func require(_ names: [String]) throws -> String {
         for name in names {
             if let path = findExecutable(name) {
@@ -73,6 +134,22 @@ enum ExternalTool {
             paths.append(contentsOf: path.split(separator: ":").map(String.init))
         }
         return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
+    }
+
+    private static func status(
+        name: String,
+        displayName: String,
+        purpose: String,
+        executableNames: [String],
+        installHint: String
+    ) -> ExternalToolStatus {
+        ExternalToolStatus(
+            name: name,
+            displayName: displayName,
+            purpose: purpose,
+            executablePath: executableNames.compactMap(findExecutable).first,
+            installHint: installHint
+        )
     }
 
     private static func environment() -> [String: String] {

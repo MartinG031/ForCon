@@ -23,6 +23,26 @@ gh repo view "$FORCON_GITHUB_REPOSITORY" >/dev/null
 
 FORCON_GITHUB_REPOSITORY="$FORCON_GITHUB_REPOSITORY" "$ROOT_DIR/scripts/package-release.sh"
 
+NOTES_FILE="$(mktemp "${TMPDIR:-/tmp}/forcon-release-notes.XXXXXX.md")"
+trap 'rm -f "$NOTES_FILE"' EXIT
+if [[ -f "$ROOT_DIR/CHANGELOG.md" ]]; then
+    awk -v version="$VERSION" '
+        $0 ~ "^## \\[" version "\\]" || $0 ~ "^## " version {
+            found = 1
+            next
+        }
+        found && /^## / {
+            exit
+        }
+        found {
+            print
+        }
+    ' "$ROOT_DIR/CHANGELOG.md" > "$NOTES_FILE"
+fi
+if [[ ! -s "$NOTES_FILE" ]]; then
+    echo "ForCon $VERSION" > "$NOTES_FILE"
+fi
+
 ASSETS=(
     "$OUTPUT_DIR/$RELEASE_NAME.dmg"
     "$OUTPUT_DIR/$RELEASE_NAME.zip"
@@ -31,9 +51,9 @@ ASSETS=(
 
 if gh release view "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" >/dev/null 2>&1; then
     gh release upload "$TAG" "${ASSETS[@]}" --repo "$FORCON_GITHUB_REPOSITORY" --clobber
-    gh release edit "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes "ForCon $VERSION" --latest
+    gh release edit "$TAG" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" --latest
 else
-    gh release create "$TAG" "${ASSETS[@]}" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes "ForCon $VERSION" --latest
+    gh release create "$TAG" "${ASSETS[@]}" --repo "$FORCON_GITHUB_REPOSITORY" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" --latest
 fi
 
 echo "https://github.com/$FORCON_GITHUB_REPOSITORY/releases/latest/download/latest.json"

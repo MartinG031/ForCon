@@ -375,6 +375,7 @@ private struct SettingsView: View {
     @AppStorage("settings.section.image.expanded") private var imageExpanded = true
     @AppStorage("settings.section.video.expanded") private var videoExpanded = true
     @AppStorage("settings.section.document.expanded") private var documentExpanded = true
+    @AppStorage("settings.section.dependencies.expanded") private var dependenciesExpanded = true
     @AppStorage("settings.section.app.expanded") private var appExpanded = true
 
     var body: some View {
@@ -401,6 +402,8 @@ private struct SettingsView: View {
                     videoSettings
                     Divider()
                     documentSettings
+                    Divider()
+                    dependencySettings
                     Divider()
                     appSettings
                 }
@@ -490,6 +493,43 @@ private struct SettingsView: View {
     private var documentSettings: some View {
         SettingsSection(title: "文档设置", icon: "doc.text", isExpanded: $documentExpanded) {
             documentScaleControl
+        }
+    }
+
+    private var dependencySettings: some View {
+        SettingsSection(title: "转换组件", icon: "wrench.and.screwdriver", isExpanded: $dependenciesExpanded) {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(viewModel.externalToolStatuses) { status in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: status.isInstalled ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(status.isInstalled ? .green : .orange)
+                            .frame(width: 18)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(status.displayName)
+                                Spacer()
+                                Text(status.isInstalled ? "已安装" : "未安装")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(status.purpose)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(status.executablePath ?? status.installHint)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+
+                Button {
+                    viewModel.refreshExternalToolStatuses()
+                } label: {
+                    Label("重新检测", systemImage: "arrow.clockwise")
+                }
+            }
         }
     }
 

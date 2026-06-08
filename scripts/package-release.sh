@@ -27,17 +27,25 @@ ln -s /Applications "$RELEASE_DIR/Applications"
 cat > "$RELEASE_DIR/README.txt" <<README
 ForCon $VERSION
 
-安装方式：把 ForCon.app 拖到 Applications 文件夹。
+安装方式：
+1. 把 ForCon.app 拖到 Applications 文件夹。
+2. 从 Applications 打开 ForCon。
 
-首次打开如遇到 macOS 安全提示：右键 ForCon.app，选择“打开”。
+首次打开如遇到 macOS 安全提示：
+1. 在提示窗口中选择“完成”或关闭提示。
+2. 打开“系统设置 > 隐私与安全”。
+3. 在安全性区域点击 ForCon 的“仍要打开”。
+4. 或在 Finder 中右键 ForCon.app，选择“打开”。
 
 功能：图片、视频、文档批量格式转换。
 
 可信声明：
 - ForCon 在本机处理文件，不上传到云端或第三方服务器。
 - 输出文件只写入用户选择的输出目录。
-- 只有点击自动更新时才会读取更新源；下载的安装包会先做 SHA-256 校验。
+- 只有检查或安装更新时才会读取 GitHub Releases 更新源。
+- 下载的安装包会先做 SHA-256 校验。
 - 转换能力来自 macOS 系统框架和本机安装的 ImageMagick、FFmpeg、Pandoc、LibreOffice。
+- 可在 ForCon 设置中查看本机转换组件状态。
 - 本发行包为本地 ad-hoc 签名；没有 Apple Developer ID 公证。
 README
 
