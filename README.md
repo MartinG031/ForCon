@@ -2,7 +2,7 @@
 
 ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视频和文档。
 
-[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.29.dmg)
+[下载最新版 ForCon](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.30.dmg)
 
 ## 主要功能
 
@@ -16,6 +16,7 @@ ForCon 是一款原生 macOS 格式转换工具，用于批量转换图片、视
 - 侧边栏底部提供统一设置入口，可管理输出目录和各类转换参数。
 - 设置里显示当前版本；更新检查与安装放在 macOS 顶部 ForCon 菜单中。
 - 设置里可检测 ImageMagick、FFmpeg、Pandoc、LibreOffice 等本机转换组件状态。
+- UI 会根据系统版本自适应：新系统使用 Liquid Glass，旧系统使用原生 macOS 材质 fallback。
 - 自动控制图片、视频、文档转换并发，减少大批量任务时的卡顿和资源争用。
 - 批量转换时显示已处理数量、实时进度和预计剩余时间。
 - 记住上一次选择的类型、输出格式、输出目录、常用设置和设置分组样式。
@@ -67,7 +68,7 @@ ForCon 会优先使用 macOS 系统能力处理常见转换。更广泛的图片
 
 ForCon is a native macOS format converter for batch image, video, and document conversion.
 
-[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.29.dmg)
+[Download the latest ForCon release](https://github.com/MartinG031/ForCon/releases/latest/download/ForCon-0.1.30.dmg)
 
 ## Features
 
@@ -81,6 +82,7 @@ ForCon is a native macOS format converter for batch image, video, and document c
 - A unified Settings entry at the bottom of the sidebar manages the output folder and conversion options.
 - Settings shows the current version; update checking and installation live in the macOS ForCon app menu.
 - Settings can detect local conversion components such as ImageMagick, FFmpeg, Pandoc, and LibreOffice.
+- The UI adapts by system version: newer systems use Liquid Glass, while older systems use native macOS material fallbacks.
 - Automatically limits image, video, and document conversion concurrency to reduce stalls and resource contention during large batches.
 - Shows processed item count, live progress, and estimated remaining time during batch conversion.
 - Remembers the last selected mode, output formats, output folder, common settings, and Settings section layout.

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.30]
+
+- Added adaptive macOS UI styling with Liquid Glass on macOS 26+ when built with a compatible SDK.
+- Added native material fallbacks for older macOS versions and GitHub Actions' Swift 5.10 runner.
+- Updated sidebar, settings, permission, about, result, and action surfaces to use the adaptive style layer.
+
 ## [0.1.29]
 
 - Added a manual update dialog from the macOS ForCon menu.

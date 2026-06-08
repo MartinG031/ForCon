@@ -78,6 +78,7 @@ struct ContentView: View {
                         Label("添加文件", systemImage: "plus")
                             .frame(maxWidth: .infinity)
                     }
+                    .forConAdaptiveButton()
                     .controlSize(.large)
 
                     Button {
@@ -86,7 +87,7 @@ struct ContentView: View {
                         Label("开始转换", systemImage: "arrow.triangle.2.circlepath")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .forConAdaptiveProminentButton()
                     .controlSize(.large)
                     .disabled(!viewModel.canConvert)
 
@@ -99,12 +100,13 @@ struct ContentView: View {
                 Label("设置", systemImage: "gearshape")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderless)
+            .forConAdaptiveButton()
             .controlSize(.large)
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
         .frame(minWidth: 280)
+        .background(.thinMaterial)
     }
 
     private var outputFormatSection: some View {
@@ -186,6 +188,7 @@ struct ContentView: View {
             } label: {
                 Label("清空", systemImage: "trash")
             }
+            .forConAdaptiveButton()
             .disabled(viewModel.inputURLs.isEmpty || viewModel.isConverting)
         }
         .padding(16)
@@ -251,6 +254,7 @@ struct ContentView: View {
                     } label: {
                         Label("打开输出目录", systemImage: "folder")
                     }
+                    .forConAdaptiveButton()
                 }
             }
 
@@ -288,6 +292,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial)
     }
 
     private func iconName(for url: URL) -> String {
@@ -342,15 +347,17 @@ private struct StartupPermissionView: View {
                         onComplete()
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .forConAdaptiveProminentButton()
 
                 Button("使用下载文件夹") {
                     onComplete()
                 }
+                .forConAdaptiveButton()
             }
         }
         .padding(28)
         .frame(width: 520)
+        .forConAdaptiveSurface(cornerRadius: 22)
     }
 
     private func permissionRow(icon: String, title: String, detail: String) -> some View {
@@ -450,6 +457,7 @@ private struct SettingsView: View {
                 } label: {
                     Label("选择输出目录", systemImage: "folder")
                 }
+                .forConAdaptiveButton()
             }
         }
     }
@@ -525,6 +533,7 @@ private struct SettingsView: View {
                 } label: {
                     Label("重新检测", systemImage: "arrow.clockwise")
                 }
+                .forConAdaptiveButton()
             }
         }
     }
@@ -579,6 +588,8 @@ private struct SettingsSection<Content: View>: View {
                 .font(.headline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .forConAdaptiveSurface(cornerRadius: 16)
     }
 }
 
@@ -618,5 +629,6 @@ struct AboutForConView: View {
         }
         .padding(28)
         .frame(width: 520)
+        .forConAdaptiveSurface(cornerRadius: 22)
     }
 }
