@@ -111,21 +111,26 @@ struct ContentView: View {
 
     private var outputFormatSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("输出格式")
-                .font(.headline)
             if viewModel.category == .automatic {
+                Text("输出格式")
+                    .font(.headline)
                 targetPicker("图片", selection: $viewModel.imageTargetExtension, category: .image)
                 targetPicker("视频", selection: $viewModel.videoTargetExtension, category: .video)
                 targetPicker("文档", selection: $viewModel.documentTargetExtension, category: .document)
             } else {
-                Picker("", selection: $viewModel.targetExtension) {
-                    ForEach(viewModel.availableOutputExtensions, id: \.self) { ext in
-                        Text(".\(ext)").tag(ext)
+                HStack {
+                    Text("输出格式")
+                        .font(.headline)
+                    Spacer()
+                    Picker("输出格式", selection: $viewModel.targetExtension) {
+                        ForEach(viewModel.availableOutputExtensions, id: \.self) { ext in
+                            Text(".\(ext)").tag(ext)
+                        }
                     }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(width: 96)
                 }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -399,33 +404,30 @@ private struct SettingsView: View {
                 }
                 .keyboardShortcut(.defaultAction)
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
 
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 12) {
                     outputDirectorySettings
-                    Divider()
                     imageSettings
-                    Divider()
                     videoSettings
-                    Divider()
                     documentSettings
-                    Divider()
                     dependencySettings
-                    Divider()
                     appSettings
                 }
-                .padding(24)
+                .padding(18)
             }
+            .controlSize(.small)
         }
-        .frame(width: 620, height: 720)
+        .frame(width: 560, height: 620)
     }
 
     private var appSettings: some View {
         SettingsSection(title: "应用", icon: "app.badge", isExpanded: $appExpanded) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("当前版本")
                     Spacer()
@@ -445,7 +447,7 @@ private struct SettingsView: View {
 
     private var outputDirectorySettings: some View {
         SettingsSection(title: "输出目录", icon: "folder", isExpanded: $outputDirectoryExpanded) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(viewModel.outputDirectory.path)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -464,7 +466,7 @@ private struct SettingsView: View {
 
     private var imageSettings: some View {
         SettingsSection(title: "图片设置", icon: "photo", isExpanded: $imageExpanded) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 9) {
                 imageQualityControl
                 Toggle("限制图片尺寸", isOn: $viewModel.resizeImages)
                 HStack {
@@ -482,7 +484,7 @@ private struct SettingsView: View {
 
     private var videoSettings: some View {
         SettingsSection(title: "视频设置", icon: "film", isExpanded: $videoExpanded) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 9) {
                 Picker("视频质量", selection: $viewModel.videoQuality) {
                     ForEach(VideoQuality.allCases) { quality in
                         Text(quality.displayName).tag(quality)
@@ -502,7 +504,7 @@ private struct SettingsView: View {
 
     private var dependencySettings: some View {
         SettingsSection(title: "转换组件", icon: "wrench.and.screwdriver", isExpanded: $dependenciesExpanded) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
                 ForEach(viewModel.externalToolStatuses) { status in
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: status.isInstalled ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
@@ -539,7 +541,7 @@ private struct SettingsView: View {
     }
 
     private var imageQualityControl: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text("图片质量")
                 Spacer()
@@ -551,7 +553,7 @@ private struct SettingsView: View {
     }
 
     private var documentScaleControl: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text("PDF 图片倍率")
                 Spacer()
@@ -579,17 +581,17 @@ private struct SettingsSection<Content: View>: View {
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 content
             }
-            .padding(.top, 12)
+            .padding(.top, 8)
         } label: {
             Label(title, systemImage: icon)
-                .font(.headline)
+                .font(.callout.weight(.semibold))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .forConAdaptiveSurface(cornerRadius: 16)
+        .padding(10)
+        .forConAdaptiveSurface(cornerRadius: 14)
     }
 }
 

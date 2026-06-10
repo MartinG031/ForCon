@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.33]
+
+- Aligned the single-category output format label and picker on one row in the sidebar.
+- Made the settings sheet more compact with tighter section spacing, smaller controls, and reduced padding.
+
 ## [0.1.32]
 
 - Kept the adaptive macOS UI layer from 0.1.30.
