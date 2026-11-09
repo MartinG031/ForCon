@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.34]
+
+- Schedule large batches with bounded image, video, and document queues.
+- Isolate conversion outputs and preserve existing files when names collide.
+- Wait asynchronously for external tools and isolate concurrent LibreOffice jobs.
+
 ## [0.1.33]
 
 - Aligned the single-category output format label and picker on one row in the sidebar.

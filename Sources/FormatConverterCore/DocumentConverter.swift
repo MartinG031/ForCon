@@ -3,7 +3,7 @@ import Foundation
 import PDFKit
 import UniformTypeIdentifiers
 
-final class DocumentConverter: @unchecked Sendable {
+struct DocumentConverter {
     func convert(
         inputURL: URL,
         outputDirectory: URL,

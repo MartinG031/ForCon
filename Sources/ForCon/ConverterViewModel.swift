@@ -199,7 +199,7 @@ final class ConverterViewModel {
                 self.progress = self.totalCount == 0 ? 0 : Double(self.processedCount) / Double(self.totalCount)
                 self.message = "正在转换 \(self.processedCount)/\(self.totalCount)"
                 self.estimatedRemainingText = self.estimatedRemainingDurationText()
-                self.hasError = self.results.contains { !$0.status.isSucceeded }
+                self.hasError = self.hasError || !result.status.isSucceeded
             }
         }
         results = converted

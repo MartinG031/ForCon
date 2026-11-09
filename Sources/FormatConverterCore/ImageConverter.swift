@@ -2,7 +2,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-final class ImageConverter: @unchecked Sendable {
+struct ImageConverter {
     func convert(
         inputURL: URL,
         outputURL: URL,

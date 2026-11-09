@@ -85,15 +85,14 @@ public enum ExternalTool {
         throw ExternalToolError.missing(names.joined(separator: " / "))
     }
 
-    static func run(_ executable: String, arguments: [String]) throws {
+    static func run(_ executable: String, arguments: [String]) async throws {
+        try Task.checkCancellation()
         let logURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("forcon-tool-\(UUID().uuidString).log")
         FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        defer { try? FileManager.default.removeItem(at: logURL) }
         let logHandle = try FileHandle(forWritingTo: logURL)
-        defer {
-            try? logHandle.close()
-            try? FileManager.default.removeItem(at: logURL)
-        }
+        defer { try? logHandle.close() }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -102,18 +101,38 @@ public enum ExternalTool {
         process.standardOutput = logHandle
         process.standardError = logHandle
 
-        try process.run()
-        process.waitUntilExit()
+        let status: Int32 = try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { finished in
+                continuation.resume(returning: finished.terminationStatus)
+            }
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                continuation.resume(throwing: error)
+            }
+        }
 
-        guard process.terminationStatus == 0 else {
-            try? logHandle.synchronize()
-            let data = (try? Data(contentsOf: logURL)) ?? Data()
-            let output = String(data: data.suffix(16_384), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard status == 0 else {
             throw ExternalToolError.failed(
                 tool: URL(fileURLWithPath: executable).lastPathComponent,
-                message: output?.isEmpty == false ? output! : "退出码 \(process.terminationStatus)"
+                message: logTail(at: logURL) ?? "退出码 \(status)"
             )
+        }
+    }
+
+    private static func logTail(at url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        let limit = 16_384
+        do {
+            let size = try handle.seekToEnd()
+            try handle.seek(toOffset: size - min(size, UInt64(limit)))
+            let data = try handle.read(upToCount: limit) ?? Data()
+            let message = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            return message.isEmpty ? nil : message
+        } catch {
+            return nil
         }
     }
 

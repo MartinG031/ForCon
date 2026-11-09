@@ -1,12 +1,12 @@
 import Foundation
 
-final class ExternalImageConverter: @unchecked Sendable {
+struct ExternalImageConverter {
     func convert(
         inputURL: URL,
         outputURL: URL,
         targetExtension: String,
         options: ConversionOptions
-    ) throws {
+    ) async throws -> [URL] {
         let magick = try ExternalTool.require(["magick", "convert"])
         let qualityValue = String(max(1, min(100, Int(options.imageQuality * 100))))
         var arguments = [inputURL.path]
@@ -29,6 +29,19 @@ final class ExternalImageConverter: @unchecked Sendable {
         }
 
         arguments.append(outputURL.path)
-        try ExternalTool.run(magick, arguments: arguments)
+        try await ExternalTool.run(magick, arguments: arguments)
+
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: outputURL.path) {
+            return [outputURL]
+        }
+
+        // ImageMagick appends frame numbers for formats that store one image per file.
+        return try fileManager.contentsOfDirectory(
+            at: outputURL.deletingLastPathComponent(),
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension.normalizedFileExtension == targetExtension }
+        .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 }

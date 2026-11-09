@@ -1,7 +1,7 @@
 import AVFoundation
 import Foundation
 
-final class VideoConverter: @unchecked Sendable {
+struct VideoConverter {
     func convert(
         inputURL: URL,
         outputURL: URL,

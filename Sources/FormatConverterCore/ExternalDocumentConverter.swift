@@ -1,31 +1,30 @@
 import Foundation
 
-final class ExternalDocumentConverter: @unchecked Sendable {
-    private let libreOfficeTargets = Set([
+struct ExternalDocumentConverter {
+    private static let libreOfficeTargets = Set([
         "pdf", "doc", "docx", "odt", "rtf", "html", "txt",
         "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp"
     ])
-    private let pandocTargets = Set(["docx", "odt", "rtf", "html", "txt", "md", "epub"])
+    private static let pandocTargets = Set(["docx", "odt", "rtf", "html", "txt", "md", "epub"])
 
     func convert(
         inputURL: URL,
         outputDirectory: URL,
         targetExtension: String
-    ) throws -> [URL] {
-        try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
-
+    ) async throws -> [URL] {
         if shouldUsePandoc(inputURL: inputURL, targetExtension: targetExtension) {
             let outputURL = try FileNamer.uniqueOutputURL(
                 inputURL: inputURL,
                 outputDirectory: outputDirectory,
                 targetExtension: targetExtension
             )
-            try convertWithPandoc(inputURL: inputURL, outputURL: outputURL)
+            let pandoc = try ExternalTool.require(["pandoc"])
+            try await ExternalTool.run(pandoc, arguments: [inputURL.path, "-o", outputURL.path])
             return [outputURL]
         }
 
-        if libreOfficeTargets.contains(targetExtension) {
-            return try convertWithLibreOffice(
+        if Self.libreOfficeTargets.contains(targetExtension) {
+            return try await convertWithLibreOffice(
                 inputURL: inputURL,
                 outputDirectory: outputDirectory,
                 targetExtension: targetExtension
@@ -38,24 +37,20 @@ final class ExternalDocumentConverter: @unchecked Sendable {
     private func shouldUsePandoc(inputURL: URL, targetExtension: String) -> Bool {
         let inputExtension = inputURL.pathExtension.normalizedFileExtension
         let pandocInputs = Set(["md", "markdown", "rst", "adoc", "asciidoc", "html", "htm", "txt", "tex", "latex", "epub"])
-        return pandocInputs.contains(inputExtension) && pandocTargets.contains(targetExtension)
-    }
-
-    private func convertWithPandoc(inputURL: URL, outputURL: URL) throws {
-        let pandoc = try ExternalTool.require(["pandoc"])
-        try ExternalTool.run(pandoc, arguments: [inputURL.path, "-o", outputURL.path])
+        return pandocInputs.contains(inputExtension) && Self.pandocTargets.contains(targetExtension)
     }
 
     private func convertWithLibreOffice(
         inputURL: URL,
         outputDirectory: URL,
         targetExtension: String
-    ) throws -> [URL] {
+    ) async throws -> [URL] {
         let soffice = try ExternalTool.require(["soffice", "libreoffice"])
-        let before = Set(try FileManager.default.contentsOfDirectory(atPath: outputDirectory.path))
-        try ExternalTool.run(
+        let profileURL = outputDirectory.appendingPathComponent("libreoffice-profile", isDirectory: true)
+        try await ExternalTool.run(
             soffice,
             arguments: [
+                "-env:UserInstallation=\(profileURL.absoluteString)",
                 "--headless",
                 "--convert-to",
                 targetExtension,
@@ -64,27 +59,13 @@ final class ExternalDocumentConverter: @unchecked Sendable {
                 inputURL.path
             ]
         )
-        let after = Set(try FileManager.default.contentsOfDirectory(atPath: outputDirectory.path))
-        let created = after.subtracting(before)
-            .map { outputDirectory.appendingPathComponent($0) }
-            .filter { $0.pathExtension.normalizedFileExtension == targetExtension }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-
-        guard let createdURL = created.first else {
+        let outputURL = outputDirectory
+            .appendingPathComponent(inputURL.deletingPathExtension().lastPathComponent)
+            .appendingPathExtension(targetExtension)
+        guard FileManager.default.fileExists(atPath: outputURL.path) else {
             throw ConverterError.conversionFailed("LibreOffice 没有生成 .\(targetExtension) 文件")
         }
 
-        let finalURL = try FileNamer.uniqueOutputURL(
-            inputURL: inputURL,
-            outputDirectory: outputDirectory,
-            targetExtension: targetExtension
-        )
-        if createdURL != finalURL {
-            if FileManager.default.fileExists(atPath: finalURL.path) {
-                try FileManager.default.removeItem(at: finalURL)
-            }
-            try FileManager.default.moveItem(at: createdURL, to: finalURL)
-        }
-        return [finalURL]
+        return [outputURL]
     }
 }

@@ -1,12 +1,12 @@
 import Foundation
 
-final class ExternalVideoConverter: @unchecked Sendable {
+struct ExternalVideoConverter {
     func convert(
         inputURL: URL,
         outputURL: URL,
         targetExtension: String,
         options: ConversionOptions
-    ) throws {
+    ) async throws {
         let ffmpeg = try ExternalTool.require(["ffmpeg"])
         var arguments = ["-y", "-i", inputURL.path]
 
@@ -28,6 +28,6 @@ final class ExternalVideoConverter: @unchecked Sendable {
         }
 
         arguments.append(outputURL.path)
-        try ExternalTool.run(ffmpeg, arguments: arguments)
+        try await ExternalTool.run(ffmpeg, arguments: arguments)
     }
 }

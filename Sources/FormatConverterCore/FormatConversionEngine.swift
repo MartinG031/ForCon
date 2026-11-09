@@ -1,14 +1,6 @@
 import Foundation
 
-public final class FormatConversionEngine: @unchecked Sendable {
-    private let imageConverter = ImageConverter()
-    private let videoConverter = VideoConverter()
-    private let documentConverter = DocumentConverter()
-    private let externalImageConverter = ExternalImageConverter()
-    private let externalVideoConverter = ExternalVideoConverter()
-    private let externalDocumentConverter = ExternalDocumentConverter()
-    private let throttle = ConversionThrottle()
-
+public final class FormatConversionEngine: Sendable {
     public init() {}
 
     public func supportedOutputs(for category: FormatCategory) -> [String] {
@@ -36,146 +28,106 @@ public final class FormatConversionEngine: @unchecked Sendable {
         _ request: ConversionRequest,
         onResult: (@Sendable (ConversionResult) async -> Void)? = nil
     ) async -> [ConversionResult] {
-        await withTaskGroup(of: ConversionResult.self) { group in
-            for inputURL in request.inputURLs {
+        let inputs = request.inputURLs.enumerated().map { index, url in
+            BatchInput(index: index, url: url, category: detectedCategory(for: url))
+        }
+        let lanes = Dictionary(grouping: inputs) { input in
+            request.category == .automatic ? input.category ?? .automatic : request.category
+        }
+        let processorCount = ProcessInfo.processInfo.activeProcessorCount
+
+        return await withTaskGroup(of: (FormatCategory, Int, ConversionResult).self) { group in
+            var pending = lanes.mapValues { $0.makeIterator() }
+
+            func enqueueNext(in lane: FormatCategory) {
+                guard let input = pending[lane]?.next() else { return }
                 group.addTask {
-                    await self.convertOne(inputURL, request: request)
+                    let result = await self.convertOne(input, request: request)
+                    return (lane, input.index, result)
                 }
             }
 
-            var results: [ConversionResult] = []
-            for await result in group {
-                results.append(result)
+            for lane in lanes.keys {
+                let limit = switch lane {
+                case .image: max(1, min(4, processorCount - 1))
+                case .video, .document: max(1, min(2, processorCount / 2))
+                case .automatic: 1
+                }
+                for _ in 0..<limit {
+                    enqueueNext(in: lane)
+                }
+            }
+
+            var results: [(index: Int, result: ConversionResult)] = []
+            results.reserveCapacity(inputs.count)
+            while let (lane, index, result) = await group.next() {
+                enqueueNext(in: lane)
+                results.append((index, result))
                 if let onResult {
                     await onResult(result)
                 }
             }
-            return results.sorted { $0.inputURL.lastPathComponent < $1.inputURL.lastPathComponent }
+            return results.sorted {
+                let lhs = $0.result.inputURL.lastPathComponent
+                let rhs = $1.result.inputURL.lastPathComponent
+                return lhs == rhs ? $0.index < $1.index : lhs < rhs
+            }.map(\.result)
         }
     }
 
-    private func convertOne(_ inputURL: URL, request: ConversionRequest) async -> ConversionResult {
+    private struct BatchInput: Sendable {
+        let index: Int
+        let url: URL
+        let category: FormatCategory?
+    }
+
+    private func convertOne(_ input: BatchInput, request: ConversionRequest) async -> ConversionResult {
         do {
-            let category = try resolvedCategory(for: inputURL, requested: request.category)
+            try Task.checkCancellation()
+            let category = try resolvedCategory(for: input, requested: request.category)
             let targetExtension = resolvedTargetExtension(for: category, request: request)
             try validateOutput(targetExtension, for: category)
 
-            await throttle.acquire(for: category)
-            let outputURLs: [URL]
-            do {
-                outputURLs = try await performConversion(
-                    inputURL: inputURL,
-                    outputDirectory: request.outputDirectory,
-                    targetExtension: targetExtension,
-                    category: category,
-                    options: request.options
-                )
-                await throttle.release(for: category)
-            } catch {
-                await throttle.release(for: category)
-                throw error
-            }
+            let backend = ConversionBackend(
+                category: category,
+                native: isNativeRoute(inputURL: input.url, targetExtension: targetExtension, category: category)
+            )
+            let output = try ConversionOutput(directory: request.outputDirectory)
+            defer { output.discard() }
+            let stagedFiles = try await backend.convert(
+                inputURL: input.url,
+                outputDirectory: output.stagingDirectory,
+                targetExtension: targetExtension,
+                options: request.options
+            )
+            try Task.checkCancellation()
+            let outputURLs = try output.publish(stagedFiles)
 
             return ConversionResult(
-                inputURL: inputURL,
+                inputURL: input.url,
                 outputURLs: outputURLs,
                 category: category,
                 status: .succeeded
             )
         } catch {
             return ConversionResult(
-                inputURL: inputURL,
+                inputURL: input.url,
                 outputURLs: [],
-                category: detectedCategory(for: inputURL) ?? request.category,
+                category: input.category ?? request.category,
                 status: .failed(error.localizedDescription)
             )
         }
     }
 
-    private func performConversion(
-        inputURL: URL,
-        outputDirectory: URL,
-        targetExtension: String,
-        category: FormatCategory,
-        options: ConversionOptions
-    ) async throws -> [URL] {
-        switch category {
-        case .image:
-            let outputURL = try FileNamer.uniqueOutputURL(
-                inputURL: inputURL,
-                outputDirectory: outputDirectory,
-                targetExtension: targetExtension
-            )
-            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                try imageConverter.convert(
-                    inputURL: inputURL,
-                    outputURL: outputURL,
-                    targetExtension: targetExtension,
-                    options: options
-                )
-            } else {
-                try externalImageConverter.convert(
-                    inputURL: inputURL,
-                    outputURL: outputURL,
-                    targetExtension: targetExtension,
-                    options: options
-                )
-            }
-            return [outputURL]
-
-        case .video:
-            let outputURL = try FileNamer.uniqueOutputURL(
-                inputURL: inputURL,
-                outputDirectory: outputDirectory,
-                targetExtension: targetExtension
-            )
-            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                try await videoConverter.convert(
-                    inputURL: inputURL,
-                    outputURL: outputURL,
-                    targetExtension: targetExtension,
-                    options: options
-                )
-            } else {
-                try externalVideoConverter.convert(
-                    inputURL: inputURL,
-                    outputURL: outputURL,
-                    targetExtension: targetExtension,
-                    options: options
-                )
-            }
-            return [outputURL]
-
-        case .document:
-            if isNativeRoute(inputURL: inputURL, targetExtension: targetExtension, category: category) {
-                return try documentConverter.convert(
-                    inputURL: inputURL,
-                    outputDirectory: outputDirectory,
-                    targetExtension: targetExtension,
-                    options: options
-                )
-            }
-            return try externalDocumentConverter.convert(
-                inputURL: inputURL,
-                outputDirectory: outputDirectory,
-                targetExtension: targetExtension
-            )
-
-        case .automatic:
-            throw ConverterError.unsupportedInput(inputURL)
-        }
-    }
-
-    private func resolvedCategory(for inputURL: URL, requested: FormatCategory) throws -> FormatCategory {
-        let detected = detectedCategory(for: inputURL)
+    private func resolvedCategory(for input: BatchInput, requested: FormatCategory) throws -> FormatCategory {
         if requested != .automatic {
-            if let detected, detected != requested {
-                throw ConverterError.categoryMismatch(inputURL, expected: requested, actual: detected)
+            if let detected = input.category, detected != requested {
+                throw ConverterError.categoryMismatch(input.url, expected: requested, actual: detected)
             }
             return requested
         }
-        guard let category = detected else {
-            throw ConverterError.unsupportedInput(inputURL)
+        guard let category = input.category else {
+            throw ConverterError.unsupportedInput(input.url)
         }
         return category
     }
