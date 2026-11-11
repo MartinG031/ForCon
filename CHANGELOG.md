@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.35]
 
 - Route each file through an ordered list of converters that support its exact input/output pair, falling back to the next one (for example FFmpeg after the system video exporter) when a converter fails.
 - Report unsupported input/output pairs before converting, and removed TSV, JSON and XML document outputs that no converter could produce.
