@@ -1,52 +1,40 @@
 import Foundation
 
 struct ExternalDocumentConverter {
-    private static let libreOfficeTargets = Set([
+    static let pandocInputs = Set([
+        "md", "markdown", "rst", "html", "htm", "txt", "text", "tex", "latex",
+        "epub", "docx", "odt", "rtf"
+    ])
+    static let pandocTargets = Set(["docx", "odt", "rtf", "html", "txt", "md", "epub"])
+
+    static let libreOfficeInputs = Set([
+        "doc", "docx", "docm", "dot", "dotx", "odt", "ott", "pages", "rtf", "txt", "text",
+        "html", "htm", "mhtml", "mht", "xls", "xlsx", "xlsm", "ods", "numbers", "csv", "tsv",
+        "ppt", "pptx", "pptm", "pps", "ppsx", "odp", "key"
+    ])
+    static let libreOfficeTargets = Set([
         "pdf", "doc", "docx", "odt", "rtf", "html", "txt",
         "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp"
     ])
-    private static let pandocTargets = Set(["docx", "odt", "rtf", "html", "txt", "md", "epub"])
 
-    func convert(
-        inputURL: URL,
-        outputDirectory: URL,
-        targetExtension: String
-    ) async throws -> [URL] {
-        if shouldUsePandoc(inputURL: inputURL, targetExtension: targetExtension) {
-            let outputURL = try FileNamer.uniqueOutputURL(
-                inputURL: inputURL,
-                outputDirectory: outputDirectory,
-                targetExtension: targetExtension
-            )
-            let pandoc = try ExternalTool.require(["pandoc"])
-            try await ExternalTool.run(pandoc, arguments: [inputURL.path, "-o", outputURL.path])
-            return [outputURL]
+    func convertWithPandoc(inputURL: URL, outputURL: URL) async throws -> [URL] {
+        let pandoc = try ExternalTool.require(["pandoc"])
+        var arguments = [inputURL.path, "-o", outputURL.path]
+        if outputURL.pathExtension.normalizedFileExtension == "txt" {
+            arguments.append(contentsOf: ["-t", "plain"])
         }
-
-        if Self.libreOfficeTargets.contains(targetExtension) {
-            return try await convertWithLibreOffice(
-                inputURL: inputURL,
-                outputDirectory: outputDirectory,
-                targetExtension: targetExtension
-            )
-        }
-
-        throw ConverterError.unsupportedOutput(targetExtension, category: .document)
+        try await ExternalTool.run(pandoc, arguments: arguments)
+        return [outputURL]
     }
 
-    private func shouldUsePandoc(inputURL: URL, targetExtension: String) -> Bool {
-        let inputExtension = inputURL.pathExtension.normalizedFileExtension
-        let pandocInputs = Set(["md", "markdown", "rst", "adoc", "asciidoc", "html", "htm", "txt", "tex", "latex", "epub"])
-        return pandocInputs.contains(inputExtension) && Self.pandocTargets.contains(targetExtension)
-    }
-
-    private func convertWithLibreOffice(
+    func convertWithLibreOffice(
         inputURL: URL,
         outputDirectory: URL,
         targetExtension: String
     ) async throws -> [URL] {
         let soffice = try ExternalTool.require(["soffice", "libreoffice"])
         let profileURL = outputDirectory.appendingPathComponent("libreoffice-profile", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: profileURL) }
         try await ExternalTool.run(
             soffice,
             arguments: [

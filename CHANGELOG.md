@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+- Route each file through an ordered list of converters that support its exact input/output pair, falling back to the next one (for example FFmpeg after the system video exporter) when a converter fails.
+- Report unsupported input/output pairs before converting, and removed TSV, JSON and XML document outputs that no converter could produce.
+- System image conversion now honors resizing and metadata stripping, keeps metadata when not stripping, and only writes multiple frames to formats that support them.
+- System video export now really removes audio when requested.
+- Cancelling a conversion now stops running external tools and system video exports.
+- Pandoc now writes plain text for `.txt`, accepts DOCX/ODT/RTF input, and ImageMagick applies EXIF orientation.
+
 ## [0.1.34]
 
 - Schedule large batches with bounded image, video, and document queues.

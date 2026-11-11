@@ -32,6 +32,10 @@ enum ExternalToolError: Error, LocalizedError {
     case missing(String)
     case failed(tool: String, message: String)
 
+    static func isMissing(_ error: Error) -> Bool {
+        if case ExternalToolError.missing = error { true } else { false }
+    }
+
     var errorDescription: String? {
         switch self {
         case .missing(let tool):
@@ -101,17 +105,23 @@ public enum ExternalTool {
         process.standardOutput = logHandle
         process.standardError = logHandle
 
-        let status: Int32 = try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { finished in
-                continuation.resume(returning: finished.terminationStatus)
+        let handle = RunningProcess(process)
+        let status: Int32 = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                process.terminationHandler = { finished in
+                    continuation.resume(returning: finished.terminationStatus)
+                }
+                do {
+                    try handle.launch()
+                } catch {
+                    process.terminationHandler = nil
+                    continuation.resume(throwing: error)
+                }
             }
-            do {
-                try process.run()
-            } catch {
-                process.terminationHandler = nil
-                continuation.resume(throwing: error)
-            }
+        } onCancel: {
+            handle.cancel()
         }
+        try Task.checkCancellation()
 
         guard status == 0 else {
             throw ExternalToolError.failed(
@@ -175,5 +185,33 @@ public enum ExternalTool {
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = searchPaths().joined(separator: ":")
         return env
+    }
+}
+
+/// Guards launch/terminate so a cancellation that races the launch never leaves the tool running
+/// and never calls `terminate()` on a process that was not started.
+private final class RunningProcess: @unchecked Sendable {
+    private let process: Process
+    private let lock = NSLock()
+    private var cancelled = false
+
+    init(_ process: Process) {
+        self.process = process
+    }
+
+    func launch() throws {
+        try lock.withLock {
+            if cancelled { throw CancellationError() }
+            try process.run()
+        }
+    }
+
+    func cancel() {
+        lock.withLock {
+            cancelled = true
+            if process.isRunning {
+                process.terminate()
+            }
+        }
     }
 }

@@ -1,4 +1,7 @@
 import AppKit
+import AVFoundation
+import ImageIO
+import UniformTypeIdentifiers
 import Foundation
 import XCTest
 @testable import FormatConverterCore
@@ -264,6 +267,166 @@ final class FormatConversionEngineTests: XCTestCase {
         XCTAssertEqual(output.lastPathComponent, "clip.mkv")
         let data = try Data(contentsOf: output)
         XCTAssertEqual(Array(data.prefix(4)), [0x1A, 0x45, 0xDF, 0xA3])
+    }
+
+    func testEveryAdvertisedOutputHasARoute() {
+        let inputsByCategory: [FormatCategory: Set<String>] = [
+            .image: FormatConversionEngine.imageInputs,
+            .video: FormatConversionEngine.videoInputs,
+            .document: FormatConversionEngine.documentInputs
+        ]
+        for (category, inputs) in inputsByCategory {
+            for output in FormatConversionEngine().supportedOutputs(for: category) {
+                let reachable = inputs.contains {
+                    !ConversionRoute.plan(category: category, inputExtension: $0, targetExtension: output).isEmpty
+                }
+                XCTAssertTrue(reachable, "\(category) output .\(output) has no converter")
+            }
+        }
+    }
+
+    func testPlansNativeRoutesBeforeExternalFallbacks() {
+        XCTAssertEqual(ConversionRoute.plan(category: .video, inputExtension: "avi", targetExtension: "mp4"), [.nativeVideo, .ffmpeg])
+        XCTAssertEqual(ConversionRoute.plan(category: .image, inputExtension: "png", targetExtension: "jpg"), [.nativeImage, .imageMagick])
+        XCTAssertEqual(ConversionRoute.plan(category: .image, inputExtension: "png", targetExtension: "webp"), [.imageMagick])
+        XCTAssertEqual(ConversionRoute.plan(category: .document, inputExtension: "md", targetExtension: "docx"), [.pandoc])
+        XCTAssertEqual(ConversionRoute.plan(category: .document, inputExtension: "txt", targetExtension: "pdf"), [.nativeDocument, .libreOffice])
+        XCTAssertEqual(ConversionRoute.plan(category: .document, inputExtension: "txt", targetExtension: "png"), [])
+    }
+
+    func testUnroutablePairFailsWithClearMessage() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let input = directory.appendingPathComponent("notes.txt")
+        try Data("hello".utf8).write(to: input)
+
+        let request = ConversionRequest(inputURLs: [input], outputDirectory: directory, targetExtension: "png", category: .document)
+        let results = await FormatConversionEngine().convert(request)
+        let result = try XCTUnwrap(results.first)
+
+        XCTAssertFalse(result.status.isSucceeded)
+        XCTAssertTrue(result.status.message.contains("暂不支持转换为 .png"), result.status.message)
+    }
+
+    func testNativeImageHonorsResizeAndMetadataOptions() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let input = directory.appendingPathComponent("photo.jpg")
+        try makeJPEGWithGPS(at: input, size: 64)
+
+        func convert(strip: Bool, into name: String) async throws -> ConversionResult {
+            let output = directory.appendingPathComponent(name, isDirectory: true)
+            let request = ConversionRequest(
+                inputURLs: [input],
+                outputDirectory: output,
+                targetExtension: "png",
+                options: ConversionOptions(resizeImages: true, imageMaxDimension: 16, stripImageMetadata: strip)
+            )
+            let results = await FormatConversionEngine().convert(request)
+            return try XCTUnwrap(results.first)
+        }
+
+        let stripped = try await convert(strip: true, into: "stripped")
+        XCTAssertTrue(stripped.status.isSucceeded, stripped.status.message)
+        XCTAssertEqual(stripped.route, ConversionRoute.nativeImage.displayName)
+        let strippedProperties = try imageProperties(at: XCTUnwrap(stripped.outputURLs.first))
+        XCTAssertEqual(strippedProperties[kCGImagePropertyPixelWidth] as? Int, 16)
+        XCTAssertNil(strippedProperties[kCGImagePropertyGPSDictionary])
+
+        let kept = try await convert(strip: false, into: "kept")
+        XCTAssertTrue(kept.status.isSucceeded, kept.status.message)
+        let keptProperties = try imageProperties(at: XCTUnwrap(kept.outputURLs.first))
+        XCTAssertEqual(keptProperties[kCGImagePropertyPixelWidth] as? Int, 16)
+        XCTAssertNotNil(keptProperties[kCGImagePropertyGPSDictionary])
+    }
+
+    func testCancellationTerminatesExternalTool() async throws {
+        let started = Date()
+        let task = Task {
+            try await ExternalTool.run("/bin/sleep", arguments: ["30"])
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        task.cancel()
+
+        do {
+            try await task.value
+            XCTFail("Cancelled tool should not succeed")
+        } catch {
+            XCTAssertTrue(error is CancellationError, "\(error)")
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+    }
+
+    func testFallsBackToFFmpegWhenSystemExporterCannotRead() async throws {
+        try XCTSkipUnless(isExternalToolInstalled("ffmpeg"), "FFmpeg is not installed")
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        // A Matroska stream behind a .mov name: AVFoundation is tried first and must fail.
+        let input = directory.appendingPathComponent("disguised.mov")
+        let ffmpeg = try ExternalTool.require(["ffmpeg"])
+        try await ExternalTool.run(ffmpeg, arguments: [
+            "-f", "lavfi", "-i", "color=s=32x32:r=10", "-t", "0.3", "-c:v", "mpeg4", "-f", "matroska", input.path
+        ])
+
+        let output = directory.appendingPathComponent("output", isDirectory: true)
+        let request = ConversionRequest(inputURLs: [input], outputDirectory: output, targetExtension: "mp4")
+        let results = await FormatConversionEngine().convert(request)
+        let result = try XCTUnwrap(results.first)
+
+        XCTAssertTrue(result.status.isSucceeded, result.status.message)
+        XCTAssertEqual(result.route, ConversionRoute.ffmpeg.displayName)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: output.path), ["disguised.mp4"])
+    }
+
+    func testSystemExporterRemovesAudio() async throws {
+        try XCTSkipUnless(isExternalToolInstalled("ffmpeg"), "FFmpeg is not installed")
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let input = directory.appendingPathComponent("talk.mov")
+        let ffmpeg = try ExternalTool.require(["ffmpeg"])
+        try await ExternalTool.run(ffmpeg, arguments: [
+            "-f", "lavfi", "-i", "color=s=64x64:r=10", "-f", "lavfi", "-i", "sine=frequency=440",
+            "-t", "0.5", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", input.path
+        ])
+
+        let output = directory.appendingPathComponent("output", isDirectory: true)
+        let request = ConversionRequest(
+            inputURLs: [input],
+            outputDirectory: output,
+            targetExtension: "mp4",
+            options: ConversionOptions(removeAudio: true)
+        )
+        let results = await FormatConversionEngine().convert(request)
+        let result = try XCTUnwrap(results.first)
+
+        XCTAssertTrue(result.status.isSucceeded, result.status.message)
+        XCTAssertEqual(result.route, ConversionRoute.nativeVideo.displayName)
+        let asset = AVURLAsset(url: try XCTUnwrap(result.outputURLs.first))
+        let audio = try await asset.loadTracks(withMediaType: .audio)
+        let video = try await asset.loadTracks(withMediaType: .video)
+        XCTAssertTrue(audio.isEmpty)
+        XCTAssertFalse(video.isEmpty)
+    }
+
+    private func imageProperties(at url: URL) throws -> [CFString: Any] {
+        let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+        return try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+    }
+
+    private func makeJPEGWithGPS(at url: URL, size: Int) throws {
+        let context = try XCTUnwrap(CGContext(
+            data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ))
+        context.setFillColor(CGColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        let image = try XCTUnwrap(context.makeImage())
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil))
+        let properties: [CFString: Any] = [
+            kCGImagePropertyGPSDictionary: [kCGImagePropertyGPSLatitude: 31.2, kCGImagePropertyGPSLatitudeRef: "N"]
+        ]
+        CGImageDestinationAddImage(destination, image, properties as CFDictionary)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
     }
 
     private func isExternalToolInstalled(_ name: String) -> Bool {

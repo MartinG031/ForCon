@@ -109,19 +109,23 @@ public struct ConversionResult: Identifiable, Sendable {
     public let outputURLs: [URL]
     public let category: FormatCategory
     public let status: ConversionStatus
+    /// Name of the converter that produced the output, when one succeeded.
+    public let route: String?
 
     public init(
         id: UUID = UUID(),
         inputURL: URL,
         outputURLs: [URL],
         category: FormatCategory,
-        status: ConversionStatus
+        status: ConversionStatus,
+        route: String? = nil
     ) {
         self.id = id
         self.inputURL = inputURL
         self.outputURLs = outputURLs
         self.category = category
         self.status = status
+        self.route = route
     }
 }
 
@@ -150,6 +154,7 @@ public enum ConverterError: Error, LocalizedError, Sendable {
     case categoryMismatch(URL, expected: FormatCategory, actual: FormatCategory)
     case videoExportUnavailable
     case videoExportFailed(String)
+    case noRoute(URL, targetExtension: String)
 
     public var errorDescription: String? {
         switch self {
@@ -169,6 +174,8 @@ public enum ConverterError: Error, LocalizedError, Sendable {
             "当前视频无法使用系统导出器转换"
         case .videoExportFailed(let message):
             "视频转换失败：\(message)"
+        case .noRoute(let url, let targetExtension):
+            "\(url.lastPathComponent) 暂不支持转换为 .\(targetExtension)，请换一种输出格式"
         }
     }
 }

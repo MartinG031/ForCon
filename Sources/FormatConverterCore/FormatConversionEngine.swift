@@ -88,27 +88,45 @@ public final class FormatConversionEngine: Sendable {
             let targetExtension = resolvedTargetExtension(for: category, request: request)
             try validateOutput(targetExtension, for: category)
 
-            let backend = ConversionBackend(
+            let inputExtension = input.url.pathExtension.normalizedFileExtension
+            let routes = ConversionRoute.plan(
                 category: category,
-                native: isNativeRoute(inputURL: input.url, targetExtension: targetExtension, category: category)
+                inputExtension: inputExtension,
+                targetExtension: targetExtension
             )
-            let output = try ConversionOutput(directory: request.outputDirectory)
-            defer { output.discard() }
-            let stagedFiles = try await backend.convert(
-                inputURL: input.url,
-                outputDirectory: output.stagingDirectory,
-                targetExtension: targetExtension,
-                options: request.options
-            )
-            try Task.checkCancellation()
-            let outputURLs = try output.publish(stagedFiles)
+            guard !routes.isEmpty else {
+                throw ConverterError.noRoute(input.url, targetExtension: targetExtension)
+            }
 
-            return ConversionResult(
-                inputURL: input.url,
-                outputURLs: outputURLs,
-                category: category,
-                status: .succeeded
-            )
+            var failures: [(route: ConversionRoute, error: Error)] = []
+            for route in routes {
+                let output = try ConversionOutput(directory: request.outputDirectory)
+                defer { output.discard() }
+                let stagedFiles: [URL]
+                do {
+                    stagedFiles = try await route.convert(
+                        inputURL: input.url,
+                        outputDirectory: output.stagingDirectory,
+                        targetExtension: targetExtension,
+                        options: request.options
+                    )
+                    try Task.checkCancellation()
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    failures.append((route, error))
+                    continue
+                }
+                let outputURLs = try output.publish(stagedFiles)
+                return ConversionResult(
+                    inputURL: input.url,
+                    outputURLs: outputURLs,
+                    category: category,
+                    status: .succeeded,
+                    route: route.displayName
+                )
+            }
+            throw Self.summarize(failures)
         } catch {
             return ConversionResult(
                 inputURL: input.url,
@@ -147,35 +165,22 @@ public final class FormatConversionEngine: Sendable {
         return request.targetExtension
     }
 
-    private func isNativeRoute(
-        inputURL: URL,
-        targetExtension: String,
-        category: FormatCategory
-    ) -> Bool {
-        let ext = inputURL.pathExtension.normalizedFileExtension
-        let nativeInput = switch category {
-        case .image:
-            Self.nativeImageInputs.contains(ext)
-        case .video:
-            Self.nativeVideoInputs.contains(ext)
-        case .document:
-            Self.nativeDocumentInputs.contains(ext)
-        case .automatic:
-            false
+    /// Prefers a real conversion error over "tool missing" so the user sees why a route failed,
+    /// and only reports a missing tool when nothing else was able to run.
+    private static func summarize(_ failures: [(route: ConversionRoute, error: Error)]) -> Error {
+        let ran = failures.filter { !ExternalToolError.isMissing($0.error) }
+        let missing = failures.filter { ExternalToolError.isMissing($0.error) }.map(\.route.displayName)
+        let installHint = missing.isEmpty ? nil : "安装 \(missing.joined(separator: " 或 ")) 后可再试"
+        if ran.count == 1, installHint == nil {
+            return ran[0].error
         }
-
-        let nativeOutput = switch category {
-        case .image:
-            Self.nativeImageOutputs.contains(targetExtension)
-        case .video:
-            Self.nativeVideoOutputs.contains(targetExtension)
-        case .document:
-            Self.nativeDocumentOutputs.contains(targetExtension)
-        case .automatic:
-            false
+        if !ran.isEmpty {
+            let detail = ran
+                .map { "\($0.route.displayName)：\($0.error.localizedDescription)" }
+                + [installHint].compactMap { $0 }
+            return ConverterError.conversionFailed(detail.joined(separator: "\n"))
         }
-
-        return nativeInput && nativeOutput
+        return ConverterError.conversionFailed("需要安装 \(missing.joined(separator: " 或 ")) 才能转换该格式")
     }
 }
 
@@ -211,9 +216,9 @@ public extension FormatConversionEngine {
     ])
     static let nativeDocumentOutputs = ["html", "jpeg", "jpg", "pdf", "png", "rtf", "txt"]
     static let documentOutputs = [
-        "csv", "doc", "docx", "epub", "html", "jpeg", "jpg", "json", "md",
-        "odp", "ods", "odt", "pdf", "png", "ppt", "pptx", "rtf", "tsv",
-        "txt", "xls", "xlsx", "xml"
+        "csv", "doc", "docx", "epub", "html", "jpeg", "jpg", "md",
+        "odp", "ods", "odt", "pdf", "png", "ppt", "pptx", "rtf",
+        "txt", "xls", "xlsx"
     ]
     static let documentInputs = nativeDocumentInputs.union([
         "doc", "docx", "docm", "dot", "dotx", "odt", "ott", "pages",

@@ -9,7 +9,7 @@ struct ExternalImageConverter {
     ) async throws -> [URL] {
         let magick = try ExternalTool.require(["magick", "convert"])
         let qualityValue = String(max(1, min(100, Int(options.imageQuality * 100))))
-        var arguments = [inputURL.path]
+        var arguments = [inputURL.path, "-auto-orient"]
 
         if options.resizeImages {
             let size = max(16, min(32_000, options.imageMaxDimension))

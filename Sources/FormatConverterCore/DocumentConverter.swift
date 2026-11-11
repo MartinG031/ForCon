@@ -4,6 +4,17 @@ import PDFKit
 import UniformTypeIdentifiers
 
 struct DocumentConverter {
+    private static let pdfTargets = Set(["txt", "png", "jpg", "jpeg", "pdf"])
+    private static let textTargets = Set(["pdf", "txt", "rtf", "html"])
+
+    static func canConvert(inputExtension: String, targetExtension: String) -> Bool {
+        if inputExtension == "pdf" {
+            return pdfTargets.contains(targetExtension)
+        }
+        return FormatConversionEngine.nativeDocumentInputs.contains(inputExtension)
+            && textTargets.contains(targetExtension)
+    }
+
     func convert(
         inputURL: URL,
         outputDirectory: URL,

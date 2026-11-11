@@ -52,7 +52,9 @@ The format list is based on common formats described by Wikipedia pages for imag
 
 ### Output Formats Shown in App
 
-`pdf`, `docx`, `doc`, `odt`, `rtf`, `txt`, `md`, `html`, `epub`, `pptx`, `ppt`, `odp`, `xlsx`, `xls`, `ods`, `csv`, `tsv`, `json`, `xml`, `png`, `jpg`, `jpeg`
+`pdf`, `docx`, `doc`, `odt`, `rtf`, `txt`, `md`, `html`, `epub`, `pptx`, `ppt`, `odp`, `xlsx`, `xls`, `ods`, `csv`, `png`, `jpg`, `jpeg`
+
+`png` / `jpg` / `jpeg` come from PDF page rendering only. Every file is routed to the first converter that supports its input/output pair (system converter first, then ImageMagick, FFmpeg, Pandoc or LibreOffice); if one fails, the next is tried.
 
 ### Native Conversion Outputs
 
